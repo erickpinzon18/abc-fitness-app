@@ -1,59 +1,163 @@
+import { Tabs, router } from 'expo-router';
+import { Calendar, Home, Plus, Trophy, User } from 'lucide-react-native';
 import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+function TabBarIcon({ icon: Icon, focused }: { icon: any; focused: boolean }) {
+  return <Icon size={24} color={focused ? '#dc2626' : '#9ca3af'} />;
+}
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+function CustomTabBar({ state, descriptors, navigation }: any) {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View
+      style={[
+        styles.tabBar,
+        { paddingBottom: insets.bottom > 0 ? insets.bottom : 20 },
+      ]}
+    >
+      {state.routes.map((route: any, index: number) => {
+        const { options } = descriptors[route.key];
+        const isFocused = state.index === index;
+
+        const onPress = () => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        // Icons mapping
+        const icons: { [key: string]: any } = {
+          index: Home,
+          booking: Calendar,
+          ranking: Trophy,
+          profile: User,
+        };
+
+        const labels: { [key: string]: string } = {
+          index: 'Inicio',
+          booking: 'Reservar',
+          ranking: 'Ranking',
+          profile: 'Perfil',
+        };
+
+        const Icon = icons[route.name];
+
+        // Insert the center button after "booking" (index 1)
+        if (index === 2) {
+          return (
+            <React.Fragment key="center-button">
+              {/* Center Plus Button */}
+              <TouchableOpacity
+                onPress={() => router.push('/actions-modal')}
+                style={styles.centerButton}
+                activeOpacity={0.8}
+              >
+                <View style={styles.centerButtonInner}>
+                  <Plus size={30} color="#ffffff" />
+                </View>
+              </TouchableOpacity>
+
+              {/* Current Tab */}
+              <TouchableOpacity
+                onPress={onPress}
+                style={styles.tabItem}
+                accessibilityRole="button"
+                accessibilityState={isFocused ? { selected: true } : {}}
+              >
+                <Icon size={24} color={isFocused ? '#dc2626' : '#9ca3af'} />
+                <View
+                  style={[
+                    styles.tabLabel,
+                    { backgroundColor: isFocused ? '#dc2626' : 'transparent' },
+                  ]}
+                />
+              </TouchableOpacity>
+            </React.Fragment>
+          );
+        }
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            onPress={onPress}
+            style={styles.tabItem}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+          >
+            <Icon size={24} color={isFocused ? '#dc2626' : '#9ca3af'} />
+            <View
+              style={[
+                styles.tabLabel,
+                { backgroundColor: isFocused ? '#dc2626' : 'transparent' },
+              ]}
+            />
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-        }}
-      />
+        headerShown: false,
+      }}
+    >
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="booking" />
+      <Tabs.Screen name="ranking" />
+      <Tabs.Screen name="profile" />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    paddingTop: 12,
+    alignItems: 'flex-start',
+    justifyContent: 'space-around',
+  },
+  tabItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  tabLabel: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 6,
+  },
+  centerButton: {
+    marginTop: -30,
+  },
+  centerButtonInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#dc2626',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#dc2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+});

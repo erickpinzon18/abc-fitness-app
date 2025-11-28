@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVC App - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Frame del móvil */
+        .mobile-frame {
+            width: 375px;
+            height: 812px;
+            background-color: #f9fafb; /* Fondo gris muy claro */
+            border-radius: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 12px solid #111;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Hide Scrollbar */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Colores AVC */
+        .bg-avc-red { background-color: #dc2626; }
+        .text-avc-red { color: #dc2626; }
+        .border-avc-red { border-color: #dc2626; }
+
+        /* Tarjetas con sombra suave */
+        .card-shadow {
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Barra de estado y Notch */
+        .status-bar {
+            height: 44px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            background-color: #f9fafb;
+            z-index: 10;
+        }
+        .notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background-color: #111;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            z-index: 20;
+        }
+
+        /* Bottom Tab Bar */
+        .tab-bar {
+            height: 85px;
+            background-color: white;
+            border-top: 1px solid #f3f4f6;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            padding-top: 12px;
+            padding-bottom: 20px;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            z-index: 30;
+        }
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #9ca3af;
+            font-size: 10px;
+            font-weight: 500;
+        }
+        .tab-item.active {
+            color: #dc2626;
+        }
+        
+        /* Indicador circular de progreso */
+        .progress-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: conic-gradient(#dc2626 75%, #e5e7eb 0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .progress-inner {
+            width: 52px;
+            height: 52px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: #111827;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="mobile-frame">
+        <div class="notch"></div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span>9:41</span>
+            <div class="flex gap-1">
+                <i data-lucide="signal" size="14"></i>
+                <i data-lucide="wifi" size="14"></i>
+                <i data-lucide="battery" size="14"></i>
+            </div>
+        </div>
+
+        <!-- CONTENIDO SCROLLABLE -->
+        <div class="flex-1 overflow-y-auto no-scrollbar pb-24 px-5 pt-2">
+            
+            <!-- HEADER: Saludo y Perfil -->
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <p class="text-gray-500 text-sm font-medium">Buenos días,</p>
+                    <h1 class="text-2xl font-bold text-gray-900">Alex Fit <span class="text-2xl">🔥</span></h1>
+                </div>
+                <div class="relative">
+                    <img src="https://i.pravatar.cc/150?img=11" alt="Perfil" class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover">
+                    <div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
+                </div>
+            </div>
+
+            <!-- TARJETA RESUMEN (Stats) -->
+            <div class="flex gap-4 mb-6">
+                <!-- Card 1: Clases -->
+                <div class="flex-1 bg-white rounded-2xl p-4 card-shadow flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-gray-500 font-semibold uppercase tracking-wide">Este Mes</p>
+                        <p class="text-2xl font-bold text-gray-900">12 <span class="text-xs text-gray-400 font-normal">/ 20</span></p>
+                    </div>
+                    <div class="progress-circle">
+                        <div class="progress-inner">60%</div>
+                    </div>
+                </div>
+                <!-- Card 2: Racha -->
+                <div class="w-1/3 bg-red-50 rounded-2xl p-4 card-shadow flex flex-col items-center justify-center text-center border border-red-100">
+                    <i data-lucide="flame" class="text-avc-red mb-1" size="24" fill="#dc2626"></i>
+                    <p class="text-lg font-bold text-gray-900">5 Días</p>
+                    <p class="text-[10px] text-avc-red font-bold uppercase">Racha</p>
+                </div>
+            </div>
+
+            <!-- PRÓXIMA CLASE (Highlight) -->
+            <div class="mb-8">
+                <div class="flex justify-between items-end mb-3">
+                    <h2 class="text-lg font-bold text-gray-900">Tu Próxima Clase</h2>
+                    <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-md">Confirmada</span>
+                </div>
+                
+                <div class="bg-white rounded-3xl p-5 card-shadow relative overflow-hidden">
+                    <!-- Decorative background blob -->
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-red-50 rounded-full z-0"></div>
+
+                    <div class="relative z-10 flex justify-between items-start">
+                        <div class="flex gap-4">
+                            <div class="bg-gray-100 rounded-2xl w-16 h-16 flex flex-col items-center justify-center text-gray-800">
+                                <span class="text-xs font-bold uppercase">Hoy</span>
+                                <span class="text-xl font-bold">18</span>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900">CrossFit WOD</h3>
+                                <p class="text-gray-500 text-sm flex items-center gap-1 mt-1">
+                                    <i data-lucide="clock" size="14"></i> 5:00 PM - 6:00 PM
+                                </p>
+                                <p class="text-gray-500 text-sm flex items-center gap-1 mt-0.5">
+                                    <i data-lucide="user" size="14"></i> Coach Juan Pérez
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-5 pt-4 border-t border-gray-100 flex gap-3 relative z-10">
+                        <button class="flex-1 bg-avc-red text-white font-bold py-3 rounded-xl shadow-md shadow-red-200 text-sm active:scale-95 transition-transform">
+                            Hacer Check-in
+                        </button>
+                        <button class="w-12 h-12 flex items-center justify-center border border-gray-200 rounded-xl text-gray-400 hover:text-red-500 active:bg-red-50">
+                            <i data-lucide="x" size="20"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WOD DEL DÍA (Sneak Peek) -->
+            <div class="mb-8">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-lg font-bold text-gray-900">WOD de Hoy</h2>
+                    <a href="#" class="text-sm font-bold text-avc-red">Ver Detalle</a>
+                </div>
+
+                <div class="bg-gray-900 rounded-3xl p-6 card-shadow text-white relative overflow-hidden">
+                    <!-- Background Pattern -->
+                    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 10px 10px;"></div>
+                    
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <span class="text-xs font-bold bg-white/20 px-2 py-1 rounded text-white">AMRAP 20'</span>
+                                <h3 class="text-2xl font-bold mt-2">"The Murph Prep"</h3>
+                            </div>
+                            <i data-lucide="dumbbell" class="text-gray-500" size="32"></i>
+                        </div>
+
+                        <div class="space-y-2 text-gray-300 text-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-avc-red flex items-center justify-center text-[10px] font-bold">1</div>
+                                <span>400m Run</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-avc-red flex items-center justify-center text-[10px] font-bold">2</div>
+                                <span>15 Pull-Ups</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-avc-red flex items-center justify-center text-[10px] font-bold">3</div>
+                                <span>30 Push-Ups</span>
+                            </div>
+                            <div class="pl-9 text-xs text-gray-500">+ 2 more exercises...</div>
+                        </div>
+                        
+                        <div class="mt-4 pt-4 border-t border-gray-700 flex justify-between items-center">
+                            <span class="text-xs text-gray-400">Log Result</span>
+                            <button class="w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-900">
+                                <i data-lucide="plus" size="16"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESERVAR AHORA (Horizontal Scroll) -->
+            <div class="mb-6">
+                <h2 class="text-lg font-bold text-gray-900 mb-3">Reservar para Mañana</h2>
+                
+                <div class="flex gap-4 overflow-x-auto no-scrollbar pb-4">
+                    <!-- Slot 1 -->
+                    <div class="min-w-[140px] bg-white rounded-2xl p-4 card-shadow border border-transparent hover:border-red-200 transition-all flex flex-col gap-2">
+                        <span class="text-xs font-bold text-gray-400">6:00 AM</span>
+                        <p class="font-bold text-gray-900">CrossFit</p>
+                        <div class="mt-auto pt-2 flex justify-between items-center">
+                            <span class="text-[10px] bg-red-50 text-avc-red px-1.5 py-0.5 rounded">3 libres</span>
+                            <button class="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-white">
+                                <i data-lucide="plus" size="16"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Slot 2 -->
+                    <div class="min-w-[140px] bg-white rounded-2xl p-4 card-shadow border border-transparent hover:border-red-200 transition-all flex flex-col gap-2">
+                        <span class="text-xs font-bold text-gray-400">7:00 AM</span>
+                        <p class="font-bold text-gray-900">Funcional</p>
+                        <div class="mt-auto pt-2 flex justify-between items-center">
+                            <span class="text-[10px] bg-green-50 text-green-600 px-1.5 py-0.5 rounded">10 libres</span>
+                            <button class="w-8 h-8 bg-gray-900 rounded-full flex items-center justify-center text-white">
+                                <i data-lucide="plus" size="16"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Slot 3 -->
+                    <div class="min-w-[140px] bg-white rounded-2xl p-4 card-shadow border border-transparent hover:border-red-200 transition-all flex flex-col gap-2">
+                        <span class="text-xs font-bold text-gray-400">8:00 AM</span>
+                        <p class="font-bold text-gray-900">CrossFit</p>
+                        <div class="mt-auto pt-2 flex justify-between items-center">
+                            <span class="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">Lleno</span>
+                            <button class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-white cursor-not-allowed">
+                                <i data-lucide="bell" size="16" class="text-gray-400"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BOTTOM NAVIGATION -->
+        <div class="tab-bar">
+            <div class="tab-item active">
+                <i data-lucide="home" size="24"></i>
+                <span>Inicio</span>
+            </div>
+            <div class="tab-item">
+                <i data-lucide="calendar" size="24"></i>
+                <span>Reservar</span>
+            </div>
+            <!-- Botón central destacado (opcional, pero se ve cool) -->
+            <div class="relative -top-6">
+                <div class="w-14 h-14 bg-avc-red rounded-full flex items-center justify-center shadow-lg shadow-red-300 text-white">
+                    <i data-lucide="plus" size="30"></i>
+                </div>
+            </div>
+            <div class="tab-item">
+                <i data-lucide="trophy" size="24"></i>
+                <span>Ranking</span>
+            </div>
+            <div class="tab-item">
+                <i data-lucide="user" size="24"></i>
+                <span>Perfil</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

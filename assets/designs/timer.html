@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVC App - Timer Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .mobile-frame {
+            width: 375px;
+            height: 812px;
+            background-color: #f9fafb;
+            border-radius: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 12px solid #111;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Transiciones de pantalla */
+        .screen {
+            position: absolute;
+            top: 44px;
+            bottom: 0;
+            width: 100%;
+            background-color: #f9fafb;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+        .screen.hidden-right { transform: translateX(100%); }
+        .screen.hidden-left { transform: translateX(-100%); }
+        .screen.active { transform: translateX(0); }
+
+        .bg-avc-red { background-color: #dc2626; }
+        .text-avc-red { color: #dc2626; }
+        .border-avc-red { border-color: #dc2626; }
+
+        /* Fuente digital para el reloj */
+        .font-digital { font-family: 'Roboto Mono', monospace; }
+
+        /* Sombras y Tarjetas */
+        .card-shadow { box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.1); }
+        
+        /* Barra de estado */
+        .status-bar {
+            height: 44px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            background-color: #f9fafb;
+            z-index: 50;
+        }
+        .notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background-color: #111;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            z-index: 60;
+        }
+
+        /* Animación de pulso para el timer activo */
+        @keyframes pulse-soft {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.02); opacity: 0.9; }
+        }
+        .timer-active .time-display {
+            animation: pulse-soft 2s infinite ease-in-out;
+        }
+        
+        /* Botones de Timer Grid */
+        .timer-option {
+            transition: all 0.2s ease;
+        }
+        .timer-option:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="mobile-frame">
+        <div class="notch"></div>
+        
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span>9:50</span>
+            <div class="flex gap-1">
+                <i data-lucide="signal" size="14"></i>
+                <i data-lucide="wifi" size="14"></i>
+                <i data-lucide="battery" size="14"></i>
+            </div>
+        </div>
+
+        <!-- PANTALLA 1: MENÚ DE TIMERS -->
+        <div id="screen-menu" class="screen active p-5 overflow-y-auto">
+            
+            <!-- Header con Back Button (simulado volver al Dashboard) -->
+            <div class="flex items-center mb-6">
+                <button class="p-2 -ml-2 rounded-full hover:bg-gray-100 text-gray-600">
+                    <i data-lucide="chevron-left" size="28"></i>
+                </button>
+                <h1 class="text-2xl font-bold text-gray-900 ml-2">AVC Timer Pro</h1>
+            </div>
+
+            <p class="text-gray-500 text-sm mb-6">Selecciona el tipo de entrenamiento para hoy. ¡Dalo todo!</p>
+
+            <div class="grid grid-cols-2 gap-4">
+                
+                <!-- Clock -->
+                <div class="timer-option bg-white p-5 rounded-2xl card-shadow flex flex-col items-center justify-center gap-3 h-40 border-2 border-transparent hover:border-gray-200" onclick="openTimer('CLOCK')">
+                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-700">
+                        <i data-lucide="clock" size="24"></i>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="font-bold text-gray-900">Reloj</h3>
+                        <p class="text-xs text-gray-400">Stopwatch simple</p>
+                    </div>
+                </div>
+
+                <!-- Tabata -->
+                <div class="timer-option bg-white p-5 rounded-2xl card-shadow flex flex-col items-center justify-center gap-3 h-40 border-2 border-transparent hover:border-red-100" onclick="openTimer('TABATA')">
+                    <div class="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-avc-red">
+                        <i data-lucide="flame" size="24"></i>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="font-bold text-gray-900">Tabata</h3>
+                        <p class="text-xs text-gray-400">20s ON / 10s OFF</p>
+                    </div>
+                </div>
+
+                <!-- AMRAP -->
+                <div class="timer-option bg-white p-5 rounded-2xl card-shadow flex flex-col items-center justify-center gap-3 h-40 border-2 border-transparent hover:border-blue-100" onclick="openTimer('AMRAP')">
+                    <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
+                        <i data-lucide="repeat" size="24"></i>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="font-bold text-gray-900">AMRAP</h3>
+                        <p class="text-xs text-gray-400">Cuenta regresiva</p>
+                    </div>
+                </div>
+
+                <!-- EMOM -->
+                <div class="timer-option bg-white p-5 rounded-2xl card-shadow flex flex-col items-center justify-center gap-3 h-40 border-2 border-transparent hover:border-purple-100" onclick="openTimer('EMOM')">
+                    <div class="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center text-purple-600">
+                        <i data-lucide="timer" size="24"></i>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="font-bold text-gray-900">EMOM</h3>
+                        <p class="text-xs text-gray-400">Intervalos x Minuto</p>
+                    </div>
+                </div>
+
+                <!-- For Time -->
+                <div class="timer-option bg-white p-5 rounded-2xl card-shadow flex flex-col items-center justify-center gap-3 h-40 col-span-2 border-2 border-transparent hover:border-green-100" onclick="openTimer('FOR TIME')">
+                    <div class="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600">
+                        <i data-lucide="hourglass" size="24"></i>
+                    </div>
+                    <div class="text-center">
+                        <h3 class="font-bold text-gray-900">For Time</h3>
+                        <p class="text-xs text-gray-400">Tiempo límite personalizado</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- PANTALLA 2: TIMER ACTIVO (TABATA SIMULACIÓN) -->
+        <div id="screen-active" class="screen hidden-right bg-white flex flex-col h-full">
+            
+            <!-- Top Bar -->
+            <div class="px-6 pt-4 flex justify-between items-center">
+                <button onclick="closeTimer()" class="p-2 -ml-2 rounded-full bg-gray-100 text-gray-600">
+                    <i data-lucide="x" size="24"></i>
+                </button>
+                <span id="timer-title" class="font-bold text-gray-500 tracking-widest text-sm">TABATA</span>
+                <button class="p-2 -mr-2 rounded-full text-gray-400">
+                    <i data-lucide="settings-2" size="24"></i>
+                </button>
+            </div>
+
+            <!-- Área Principal del Timer -->
+            <div class="flex-1 flex flex-col items-center justify-center relative">
+                
+                <!-- Círculo de Progreso (Fondo) -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-72 h-72 rounded-full border-[12px] border-gray-100"></div>
+                </div>
+                
+                <!-- Contenido Central -->
+                <div class="relative z-10 text-center timer-active">
+                    <span class="text-sm font-bold text-avc-red bg-red-50 px-3 py-1 rounded-full uppercase tracking-wide mb-4 inline-block">Work</span>
+                    
+                    <div class="time-display font-digital text-[80px] font-bold text-gray-900 leading-none tracking-tighter tabular-nums">
+                        00:15
+                    </div>
+                    
+                    <div class="mt-4 flex items-center justify-center gap-8 text-gray-400">
+                        <div class="text-center">
+                            <span class="text-xs font-bold uppercase tracking-wider block mb-1">Round</span>
+                            <span class="text-2xl font-bold text-gray-800 font-digital">3<span class="text-sm text-gray-400">/8</span></span>
+                        </div>
+                        <div class="text-center">
+                            <span class="text-xs font-bold uppercase tracking-wider block mb-1">Total</span>
+                            <span class="text-2xl font-bold text-gray-800 font-digital">01:45</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controles Inferiores -->
+            <div class="px-8 pb-12">
+                <!-- Info del siguiente paso -->
+                <div class="bg-gray-50 rounded-xl p-4 mb-8 flex items-center justify-between border border-gray-100">
+                    <span class="text-xs text-gray-500 font-bold uppercase">Siguiente</span>
+                    <span class="text-sm font-bold text-gray-900">Rest (10s)</span>
+                </div>
+
+                <!-- Botones Play/Pausa -->
+                <div class="flex items-center justify-center gap-6">
+                    <button class="w-16 h-16 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center active:scale-95 transition-transform">
+                        <i data-lucide="rotate-ccw" size="28"></i>
+                    </button>
+                    
+                    <button class="w-24 h-24 rounded-full bg-avc-red text-white flex items-center justify-center shadow-xl shadow-red-200 active:scale-95 transition-transform">
+                        <i data-lucide="pause" size="40" fill="currentColor"></i>
+                    </button>
+                    
+                    <button class="w-16 h-16 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center active:scale-95 transition-transform">
+                        <i data-lucide="skip-forward" size="28"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const screenMenu = document.getElementById('screen-menu');
+        const screenActive = document.getElementById('screen-active');
+        const timerTitle = document.getElementById('timer-title');
+
+        function openTimer(type) {
+            // Simplemente cambiar el título para la demo
+            timerTitle.innerText = type;
+            
+            screenMenu.classList.remove('active');
+            screenMenu.classList.add('hidden-left');
+            
+            screenActive.classList.remove('hidden-right');
+            screenActive.classList.add('active');
+        }
+
+        function closeTimer() {
+            screenActive.classList.remove('active');
+            screenActive.classList.add('hidden-right');
+            
+            screenMenu.classList.remove('hidden-left');
+            screenMenu.classList.add('active');
+        }
+    </script>
+</body>
+</html>
