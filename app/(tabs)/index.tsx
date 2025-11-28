@@ -1,12 +1,12 @@
 import { QuickBookCard } from '@/components/ui';
 import { router } from 'expo-router';
 import {
-    Clock,
-    Dumbbell,
-    Flame,
-    Plus,
-    User,
-    X
+  Clock,
+  Dumbbell,
+  Flame,
+  Plus,
+  User,
+  X
 } from 'lucide-react-native';
 import React from 'react';
 import { FlatList, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -39,7 +39,7 @@ export default function DashboardScreen() {
           <View>
             <Text className="text-gray-500 text-sm font-montserrat-medium">Buenos días,</Text>
             <Text className="text-2xl font-montserrat-bold text-gray-900">
-              Alex Fit <Text>🔥</Text>
+              Juan Fit <Text>🔥</Text>
             </Text>
           </View>
           <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>

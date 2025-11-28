@@ -1,8 +1,9 @@
 import { Button, Input } from '@/components/ui';
 import { router } from 'expo-router';
-import { ArrowRight, Dumbbell, Lock, Mail } from 'lucide-react-native';
+import { ArrowRight, Lock, Mail } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -18,12 +19,8 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = () => {
-    setLoading(true);
-    // Simular login
-    setTimeout(() => {
-      setLoading(false);
-      router.replace('/(tabs)');
-    }, 1500);
+    // Navegar directamente a tabs
+    router.replace('/(tabs)');
   };
 
   return (
@@ -40,9 +37,11 @@ export default function LoginScreen() {
           <View className="flex-1 px-6 justify-center">
             {/* Logo Area */}
             <View className="items-center justify-center mb-10">
-              <View className="w-28 h-28 bg-red-50 rounded-3xl items-center justify-center mb-6 shadow-sm">
-                <Dumbbell size={56} color="#dc2626" />
-              </View>
+              <Image
+                source={require('@/assets/images/avc-logo-light.png')}
+                className="w-40 h-40 mb-4"
+                resizeMode="contain"
+              />
               <Text className="text-3xl font-montserrat-bold text-gray-900 mb-1">
                 AVC Fitness
               </Text>

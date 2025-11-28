@@ -14,7 +14,7 @@ export {
 } from 'expo-router';
 
 export const unstable_settings = {
-  initialRouteName: '(tabs)',
+  initialRouteName: 'auth',
 };
 
 SplashScreen.preventAutoHideAsync();
@@ -53,8 +53,8 @@ function RootLayoutNav() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <StatusBar style="dark" />
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="auth" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen 
           name="timer" 
           options={{ 

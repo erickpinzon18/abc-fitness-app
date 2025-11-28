@@ -1,26 +1,28 @@
 {
   "expo": {
-    "name": "avc-fitness-app",
-    "slug": "avc-fitness-app",
+    "name": "AVC Fitness Center",
+    "slug": "avc-fitness-center-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/avc-logo-dark.jpg",
     "scheme": "avcfitnessapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/avc-logo-dark.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.avcfitness.app"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/avc-logo-dark.jpg",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.avcfitness.app",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -34,6 +36,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5d0bb122-1899-456c-a748-2a5a917512ff"
+      }
+    },
+    "owner": "erickpinzon18"
   }
 }

@@ -180,7 +180,7 @@ export default function RankingScreen() {
             className="w-10 h-10 rounded-full border-2 border-avc-red"
           />
           <View>
-            <Text className="font-montserrat-bold text-white text-sm">Tú (Alex)</Text>
+            <Text className="font-montserrat-bold text-white text-sm">Tú (Juan)</Text>
             <Text className="text-[10px] text-gray-400 font-montserrat">¡Estás a 3 pts del Top 10!</Text>
           </View>
         </View>

@@ -92,7 +92,7 @@ export default function ProfileScreen() {
             <Camera size={14} color="#ffffff" />
           </TouchableOpacity>
         </View>
-        <Text className="text-2xl font-montserrat-bold text-gray-900 mt-3">Alex Fit</Text>
+        <Text className="text-2xl font-montserrat-bold text-gray-900 mt-3">Juan Fit</Text>
         <View className="px-3 py-1 bg-red-100 rounded-full mt-1">
           <Text className="text-xs font-montserrat-bold text-avc-red">Miembro Pro</Text>
         </View>
