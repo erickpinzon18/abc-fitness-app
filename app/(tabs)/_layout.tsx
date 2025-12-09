@@ -2,7 +2,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Tabs, router } from 'expo-router';
 import { Calendar, Home, Plus, Trophy, User } from 'lucide-react-native';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function TabBarIcon({ icon: Icon, focused }: { icon: any; focused: boolean }) {

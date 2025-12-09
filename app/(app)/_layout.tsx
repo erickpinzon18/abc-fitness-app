@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router';
 import { useColorScheme } from '@/components/useColorScheme';
+import { Stack } from 'expo-router';
 
 export default function AppLayout() {
   const colorScheme = useColorScheme();
