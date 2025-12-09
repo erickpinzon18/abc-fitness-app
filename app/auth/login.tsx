@@ -27,7 +27,7 @@ export default function LoginScreen() {
   useEffect(() => {
     if (user) {
       if (isEmailVerified) {
-        router.replace('/(tabs)');
+        router.replace('/(app)/(tabs)');
       } else {
         router.replace('/auth/verify-email');
       }

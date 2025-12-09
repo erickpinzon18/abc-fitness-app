@@ -469,7 +469,7 @@ export default function DashboardScreen() {
               {firstName} <Text>🔥</Text>
             </Text>
           </View>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/profile')}>
+          <TouchableOpacity onPress={() => router.push('/profile')}>
             <View className="relative">
               <Image
                 source={{ uri: 'https://i.pravatar.cc/150?img=11' }}
@@ -656,7 +656,7 @@ export default function DashboardScreen() {
                 <TouchableOpacity 
                   className="bg-avc-red py-3.5 px-8 rounded-xl shadow-sm"
                   activeOpacity={0.8}
-                  onPress={() => router.push('/(tabs)/booking')}
+                  onPress={() => router.push('/booking')}
                 >
                   <Text className="text-white font-montserrat-bold text-sm">Reservar Clase</Text>
                 </TouchableOpacity>
@@ -736,7 +736,7 @@ export default function DashboardScreen() {
           <View className="flex-row justify-between items-center mb-3">
             <Text className="text-lg font-montserrat-bold text-gray-900">Reservar para Mañana</Text>
             {clasesMañana.length > 0 && (
-              <TouchableOpacity onPress={() => router.push('/(tabs)/booking')}>
+              <TouchableOpacity onPress={() => router.push('/booking')}>
                 <Text className="text-sm font-montserrat-bold text-avc-red">Ver todas</Text>
               </TouchableOpacity>
             )}
@@ -780,7 +780,7 @@ export default function DashboardScreen() {
               </Text>
               <TouchableOpacity 
                 className="mt-3"
-                onPress={() => router.push('/(tabs)/booking')}
+                onPress={() => router.push('/booking')}
               >
                 <Text className="text-avc-red font-montserrat-bold text-sm">Ver calendario completo</Text>
               </TouchableOpacity>

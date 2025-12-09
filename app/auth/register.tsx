@@ -35,7 +35,7 @@ export default function RegisterScreen() {
   useEffect(() => {
     if (user) {
       if (isEmailVerified) {
-        router.replace('/(tabs)');
+        router.replace('/(app)/(tabs)');
       } else {
         // Usuario registrado pero no verificado, ir a verificar
         router.replace('/auth/verify-email');

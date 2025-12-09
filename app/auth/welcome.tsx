@@ -40,7 +40,7 @@ export default function WelcomeScreen() {
   }, []);
 
   const handleContinue = () => {
-    router.replace('/(tabs)');
+    router.replace('/(app)/(tabs)');
   };
 
   return (
