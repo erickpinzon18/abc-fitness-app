@@ -1,26 +1,113 @@
 import { Button, Input } from '@/components/ui';
+import { useAuth } from '@/context/AuthContext';
 import { router } from 'expo-router';
-import { ArrowRight, Lock, Mail } from 'lucide-react-native';
-import React, { useState } from 'react';
+import { AlertCircle, ArrowRight, Lock, Mail } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
 import {
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [generalError, setGeneralError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
+  const { signIn, resetPassword, loading, error, clearError, user, isEmailVerified } = useAuth();
 
-  const handleLogin = () => {
-    // Navegar directamente a tabs
-    router.replace('/(tabs)');
+  // Redirigir según el estado de autenticación y verificación
+  useEffect(() => {
+    if (user) {
+      if (isEmailVerified) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/auth/verify-email');
+      }
+    }
+  }, [user, isEmailVerified]);
+
+  // Manejar error del contexto de auth
+  useEffect(() => {
+    if (error) {
+      setGeneralError(error);
+      clearError();
+    }
+  }, [error]);
+
+  // Limpiar errores cuando el usuario escribe
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    setEmailError('');
+    setGeneralError('');
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    setPasswordError('');
+    setGeneralError('');
+  };
+
+  const validateForm = (): boolean => {
+    let isValid = true;
+    setEmailError('');
+    setPasswordError('');
+    setGeneralError('');
+
+    if (!email.trim()) {
+      setEmailError('El correo electrónico es requerido');
+      isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      setEmailError('Ingresa un correo electrónico válido');
+      isValid = false;
+    }
+
+    if (!password.trim()) {
+      setPasswordError('La contraseña es requerida');
+      isValid = false;
+    }
+
+    return isValid;
+  };
+
+  const handleLogin = async () => {
+    if (!validateForm()) return;
+
+    try {
+      await signIn(email.trim(), password);
+      // La redirección se maneja en el useEffect basado en el estado del usuario
+    } catch (err) {
+      // El error se maneja en el useEffect
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setResetSuccess('');
+    
+    if (!email.trim()) {
+      setEmailError('Ingresa tu correo electrónico para recuperar tu contraseña');
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setEmailError('Ingresa un correo electrónico válido');
+      return;
+    }
+
+    try {
+      await resetPassword(email.trim());
+      setResetSuccess('Se ha enviado un enlace de recuperación a tu correo');
+      setGeneralError('');
+    } catch (err) {
+      // El error se maneja en el useEffect
+    }
   };
 
   return (
@@ -50,16 +137,36 @@ export default function LoginScreen() {
               </Text>
             </View>
 
+            {/* Error General */}
+            {generalError ? (
+              <View className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex-row items-center">
+                <AlertCircle size={18} color="#dc2626" />
+                <Text className="text-sm text-red-600 font-montserrat-medium ml-2 flex-1">
+                  {generalError}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Success Message */}
+            {resetSuccess ? (
+              <View className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+                <Text className="text-sm text-green-600 font-montserrat-medium text-center">
+                  {resetSuccess}
+                </Text>
+              </View>
+            ) : null}
+
             {/* Form */}
             <View className="space-y-5 w-full">
               <Input
                 label="Correo Electrónico"
                 placeholder="ejemplo@correo.com"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={handleEmailChange}
                 icon={Mail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                error={emailError}
               />
 
               <View>
@@ -67,11 +174,13 @@ export default function LoginScreen() {
                   label="Contraseña"
                   placeholder="••••••••"
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={handlePasswordChange}
+                  className='mt-4'
                   icon={Lock}
                   secureTextEntry
+                  error={passwordError}
                 />
-                <TouchableOpacity className="self-end mt-2">
+                <TouchableOpacity onPress={handleForgotPassword} className="self-end mt-4">
                   <Text className="text-xs font-montserrat-semibold text-avc-red">
                     ¿Olvidaste tu contraseña?
                   </Text>

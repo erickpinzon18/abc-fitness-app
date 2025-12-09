@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Camera, Dumbbell, QrCode, Timer, X } from 'lucide-react-native';
+import { Dumbbell, Timer, X } from 'lucide-react-native';
 import React from 'react';
 import { Pressable, Text, TouchableOpacity, View } from 'react-native';
 
@@ -10,20 +10,6 @@ const actionOptions = [
     icon: Dumbbell,
     color: '#dc2626',
     bgColor: 'bg-red-50',
-  },
-  {
-    id: 'qr',
-    title: 'Escanear QR',
-    icon: QrCode,
-    color: '#2563eb',
-    bgColor: 'bg-blue-50',
-  },
-  {
-    id: 'photo',
-    title: 'Subir Foto',
-    icon: Camera,
-    color: '#16a34a',
-    bgColor: 'bg-green-50',
   },
   {
     id: 'timer',
@@ -41,9 +27,8 @@ export default function ActionsModal() {
     setTimeout(() => {
       if (id === 'timer') {
         router.push('/timer');
-      } else {
-        // Para las otras acciones, podrías navegar a otras pantallas
-        console.log('Action:', id);
+      } else if (id === 'wod') {
+        router.push('/wod');
       }
     }, 100);
   };
@@ -70,12 +55,12 @@ export default function ActionsModal() {
           </View>
 
           {/* Action Grid */}
-          <View className="flex-row flex-wrap gap-4">
+          <View className="flex-row gap-4">
             {actionOptions.map((action) => (
               <TouchableOpacity
                 key={action.id}
                 onPress={() => handleAction(action.id)}
-                className="w-[47%] bg-gray-50 p-4 rounded-2xl items-center gap-3"
+                className="flex-1 bg-gray-50 p-4 rounded-2xl items-center gap-3"
                 activeOpacity={0.7}
               >
                 <View className={`w-12 h-12 ${action.bgColor} rounded-full items-center justify-center`}>

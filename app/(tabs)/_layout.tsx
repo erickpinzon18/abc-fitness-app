@@ -1,7 +1,8 @@
+import { useAuth } from '@/context/AuthContext';
 import { Tabs, router } from 'expo-router';
 import { Calendar, Home, Plus, Trophy, User } from 'lucide-react-native';
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function TabBarIcon({ icon: Icon, focused }: { icon: any; focused: boolean }) {
@@ -108,9 +109,31 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 }
 
 export default function TabLayout() {
+  const { user, initializing, isEmailVerified } = useAuth();
+
+  // Redirigir usando useEffect para evitar problemas de contexto
+  useEffect(() => {
+    if (initializing) return;
+    
+    if (!user) {
+      router.replace('/auth/login');
+    } else if (!isEmailVerified) {
+      router.replace('/auth/verify-email');
+    }
+  }, [user, initializing, isEmailVerified]);
+
+  // Siempre retornar Tabs para mantener el contexto de navegación
   return (
     <Tabs
-      tabBar={(props) => <CustomTabBar {...props} />}
+      tabBar={(props) => {
+        // Ocultar tab bar mientras inicializa o no hay usuario válido
+        if (initializing || !user || !isEmailVerified) {
+          return (
+            <View style={{ height: 0 }} />
+          );
+        }
+        return <CustomTabBar {...props} />;
+      }}
       screenOptions={{
         headerShown: false,
       }}

@@ -11,6 +11,7 @@ interface ClassCardProps {
   spotsAvailable: number;
   totalSpots: number;
   status: 'available' | 'few-spots' | 'full' | 'reserved';
+  loading?: boolean;
   onReserve?: () => void;
   onCancel?: () => void;
   onWaitlist?: () => void;
@@ -25,6 +26,7 @@ export default function ClassCard({
   spotsAvailable,
   totalSpots,
   status,
+  loading = false,
   onReserve,
   onCancel,
   onWaitlist,
@@ -63,6 +65,14 @@ export default function ClassCard({
   };
 
   const getActionButton = () => {
+    if (loading) {
+      return (
+        <View className="w-full py-2.5 bg-gray-200 rounded-xl items-center justify-center mt-1">
+          <Text className="text-gray-500 text-sm font-montserrat-bold">Procesando...</Text>
+        </View>
+      );
+    }
+
     switch (status) {
       case 'available':
       case 'few-spots':

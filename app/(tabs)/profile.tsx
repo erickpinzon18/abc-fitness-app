@@ -1,18 +1,19 @@
+import { useAuth } from '@/context/AuthContext';
 import { router } from 'expo-router';
 import {
-    Bell,
-    Camera,
-    ChevronRight,
-    CreditCard,
-    History,
-    Lock,
-    LogOut,
-    Moon,
-    Shield,
-    User,
+  Bell,
+  Camera,
+  ChevronRight,
+  CreditCard,
+  History,
+  Lock,
+  LogOut,
+  Moon,
+  Shield,
+  User,
 } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Image, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface SettingsRowProps {
@@ -71,12 +72,45 @@ function SettingsRow({
 }
 
 export default function ProfileScreen() {
+  const { userData, signOut, loading } = useAuth();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
   const handleLogout = () => {
-    // Simular logout
-    router.replace('/auth/login');
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro que deseas cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            router.replace('/auth/login');
+          },
+        },
+      ]
+    );
+  };
+
+  // Mapear tipos de membresía
+  const getMembershipLabel = (type?: string) => {
+    switch (type) {
+      case 'pro': return 'Miembro Pro';
+      case 'premium': return 'Miembro Premium';
+      case 'unlimited': return 'Plan Ilimitado';
+      default: return 'Miembro Básico';
+    }
+  };
+
+  const getMembershipPlan = (type?: string) => {
+    switch (type) {
+      case 'pro': return 'Plan Pro';
+      case 'premium': return 'Plan Premium';
+      case 'unlimited': return 'Plan Ilimitado';
+      default: return 'Plan Básico';
+    }
   };
 
   return (
@@ -92,9 +126,13 @@ export default function ProfileScreen() {
             <Camera size={14} color="#ffffff" />
           </TouchableOpacity>
         </View>
-        <Text className="text-2xl font-montserrat-bold text-gray-900 mt-3">Juan Fit</Text>
+        <Text className="text-2xl font-montserrat-bold text-gray-900 mt-3">
+          {userData?.displayName || 'Usuario'}
+        </Text>
         <View className="px-3 py-1 bg-red-100 rounded-full mt-1">
-          <Text className="text-xs font-montserrat-bold text-avc-red">Miembro Pro</Text>
+          <Text className="text-xs font-montserrat-bold text-avc-red">
+            {getMembershipLabel(userData?.membershipType)}
+          </Text>
         </View>
       </View>
 
@@ -110,7 +148,9 @@ export default function ProfileScreen() {
             <Text className="text-xs text-gray-400 font-montserrat-semibold uppercase">
               Membresía Actual
             </Text>
-            <Text className="text-base font-montserrat-bold text-gray-900">Plan Ilimitado</Text>
+            <Text className="text-base font-montserrat-bold text-gray-900">
+              {getMembershipPlan(userData?.membershipType)}
+            </Text>
             <Text className="text-xs text-gray-500 font-montserrat mt-0.5">
               Renueva: 15 Oct 2025
             </Text>

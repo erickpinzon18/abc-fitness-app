@@ -1,24 +1,21 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Slot } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { AuthProvider } from '@/context/AuthContext';
 import "../global.css";
 
 export {
-    ErrorBoundary
+  ErrorBoundary
 } from 'expo-router';
-
-export const unstable_settings = {
-  initialRouteName: 'auth',
-};
 
 SplashScreen.preventAutoHideAsync();
 
+// Layout raíz - solo carga fuentes y provee AuthContext
+// Las rutas se definen en los layouts hijos
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     'Montserrat': require('../assets/fonts/Montserrat-Regular.ttf'),
@@ -43,34 +40,12 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <>
       <StatusBar style="dark" />
-      <Stack>
-        <Stack.Screen name="auth" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="timer" 
-          options={{ 
-            headerShown: false,
-            presentation: 'fullScreenModal',
-          }} 
-        />
-        <Stack.Screen 
-          name="actions-modal" 
-          options={{ 
-            headerShown: false,
-            presentation: 'transparentModal',
-            animation: 'fade',
-          }} 
-        />
-      </Stack>
-    </ThemeProvider>
+      <AuthProvider>
+        <Slot />
+      </AuthProvider>
+    </>
   );
 }
