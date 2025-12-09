@@ -4,13 +4,13 @@ import { router } from 'expo-router';
 import { AlertCircle, ArrowRight, Lock, Mail } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
