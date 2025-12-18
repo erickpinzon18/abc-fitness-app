@@ -28,17 +28,11 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": [
-      "expo-router"
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
+    "plugins": [],
     "extra": {
-      "router": {},
       "eas": {
         "projectId": "5d0bb122-1899-456c-a748-2a5a917512ff"
       }

@@ -1,9 +1,18 @@
-import { Button, Input } from '@/components/ui';
-import { useAuth } from '@/context/AuthContext';
-import { router } from 'expo-router';
-import { AlertCircle, ChevronLeft, Lock, Mail, Phone, User } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import { Button, Input } from "@/components/ui";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
+  AlertCircle,
+  ChevronLeft,
+  Lock,
+  Mail,
+  Phone,
+  User,
+} from "lucide-react-native";
+import React, { useEffect, useState } from "react";
+import {
+<<<<<<< HEAD:app/auth/register.tsx
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -12,36 +21,54 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+=======
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+type AuthNavigation = NativeStackNavigationProp<any>;
+>>>>>>> 3ff5e705df4f546dce364dc64fa6ac067cdf47fd:screens/auth/RegisterScreen.tsx
 
 export default function RegisterScreen() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const navigation = useNavigation<AuthNavigation>();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
-  
-  // Estados de errores
-  const [nameError, setNameError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  const [termsError, setTermsError] = useState('');
-  const [generalError, setGeneralError] = useState('');
 
-  const { signUp, loading, error, clearError, user, isEmailVerified } = useAuth();
+  // Estados de errores
+  const [nameError, setNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [termsError, setTermsError] = useState("");
+  const [generalError, setGeneralError] = useState("");
+
+  const { signUp, loading, error, clearError, user, isEmailVerified } =
+    useAuth();
 
   // Redirigir según el estado de verificación
   useEffect(() => {
     if (user) {
       if (isEmailVerified) {
+<<<<<<< HEAD:app/auth/register.tsx
         router.replace('/(app)/(tabs)');
+=======
+        navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+>>>>>>> 3ff5e705df4f546dce364dc64fa6ac067cdf47fd:screens/auth/RegisterScreen.tsx
       } else {
         // Usuario registrado pero no verificado, ir a verificar
-        router.replace('/auth/verify-email');
+        navigation.navigate("VerifyEmail");
       }
     }
-  }, [user, isEmailVerified]);
+  }, [user, isEmailVerified, navigation]);
 
   // Manejar error del contexto de auth
   useEffect(() => {
@@ -49,80 +76,80 @@ export default function RegisterScreen() {
       setGeneralError(error);
       clearError();
     }
-  }, [error]);
+  }, [error, clearError]);
 
   // Funciones para limpiar errores al escribir
   const handleNameChange = (text: string) => {
     setName(text);
-    setNameError('');
-    setGeneralError('');
+    setNameError("");
+    setGeneralError("");
   };
 
   const handleEmailChange = (text: string) => {
     setEmail(text);
-    setEmailError('');
-    setGeneralError('');
+    setEmailError("");
+    setGeneralError("");
   };
 
   const handlePasswordChange = (text: string) => {
     setPassword(text);
-    setPasswordError('');
-    setGeneralError('');
+    setPasswordError("");
+    setGeneralError("");
   };
 
   const handleConfirmPasswordChange = (text: string) => {
     setConfirmPassword(text);
-    setConfirmPasswordError('');
-    setGeneralError('');
+    setConfirmPasswordError("");
+    setGeneralError("");
   };
 
   const handleTermsToggle = () => {
     setAcceptTerms(!acceptTerms);
-    setTermsError('');
+    setTermsError("");
   };
 
   const validateForm = (): boolean => {
     let isValid = true;
-    
+
     // Limpiar todos los errores
-    setNameError('');
-    setEmailError('');
-    setPasswordError('');
-    setConfirmPasswordError('');
-    setTermsError('');
-    setGeneralError('');
+    setNameError("");
+    setEmailError("");
+    setPasswordError("");
+    setConfirmPasswordError("");
+    setTermsError("");
+    setGeneralError("");
 
     if (!name.trim()) {
-      setNameError('El nombre es requerido');
+      setNameError("El nombre es requerido");
       isValid = false;
     }
 
     if (!email.trim()) {
-      setEmailError('El correo electrónico es requerido');
+      setEmailError("El correo electrónico es requerido");
       isValid = false;
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError('Ingresa un correo electrónico válido');
+      setEmailError("Ingresa un correo electrónico válido");
       isValid = false;
     }
 
     if (!password.trim()) {
-      setPasswordError('La contraseña es requerida');
+      setPasswordError("La contraseña es requerida");
       isValid = false;
     } else if (password.length < 6) {
-      setPasswordError('La contraseña debe tener al menos 6 caracteres');
+      setPasswordError("La contraseña debe tener al menos 6 caracteres");
       isValid = false;
     }
 
     if (!confirmPassword.trim()) {
-      setConfirmPasswordError('Confirma tu contraseña');
+      setConfirmPasswordError("Confirma tu contraseña");
       isValid = false;
     } else if (password !== confirmPassword) {
-      setConfirmPasswordError('Las contraseñas no coinciden');
+      setConfirmPasswordError("Las contraseñas no coinciden");
       isValid = false;
     }
 
     if (!acceptTerms) {
-      setTermsError('Debes aceptar los términos y condiciones');
+      setTermsError("Debes aceptar los términos y condiciones");
       isValid = false;
     }
 
@@ -143,7 +170,7 @@ export default function RegisterScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         <ScrollView
@@ -155,7 +182,7 @@ export default function RegisterScreen() {
             {/* Header */}
             <View className="flex-row items-center mb-8">
               <TouchableOpacity
-                onPress={() => router.back()}
+                onPress={() => navigation.goBack()}
                 className="p-2 -ml-2 rounded-full"
               >
                 <ChevronLeft size={28} color="#4b5563" />
@@ -167,9 +194,9 @@ export default function RegisterScreen() {
 
             <View className="mb-6">
               <Text className="text-gray-500 text-base font-montserrat leading-relaxed">
-                Únete a la comunidad{' '}
-                <Text className="font-montserrat-bold text-avc-red">AVC</Text> y empieza a
-                transformar tu vida hoy mismo.
+                Únete a la comunidad{" "}
+                <Text className="font-montserrat-bold text-avc-red">AVC</Text> y
+                empieza a transformar tu vida hoy mismo.
               </Text>
             </View>
 
@@ -199,7 +226,7 @@ export default function RegisterScreen() {
                 label="Correo Electrónico"
                 placeholder="tu@email.com"
                 value={email}
-                className='mt-4'
+                className="mt-4"
                 onChangeText={handleEmailChange}
                 icon={Mail}
                 keyboardType="email-address"
@@ -210,7 +237,7 @@ export default function RegisterScreen() {
               <Input
                 label="Teléfono (opcional)"
                 placeholder="427 123 4567"
-                className='mt-4'
+                className="mt-4"
                 value={phone}
                 onChangeText={setPhone}
                 icon={Phone}
@@ -222,7 +249,7 @@ export default function RegisterScreen() {
                 placeholder="Mínimo 6 caracteres"
                 value={password}
                 onChangeText={handlePasswordChange}
-                className='mt-4'
+                className="mt-4"
                 icon={Lock}
                 secureTextEntry
                 error={passwordError}
@@ -233,7 +260,7 @@ export default function RegisterScreen() {
                 placeholder="Repetir contraseña"
                 value={confirmPassword}
                 onChangeText={handleConfirmPasswordChange}
-                className='mt-4'
+                className="mt-4"
                 icon={Lock}
                 secureTextEntry
                 error={confirmPasswordError}
@@ -247,23 +274,29 @@ export default function RegisterScreen() {
                 >
                   <View
                     className={`w-5 h-5 rounded border-2 items-center justify-center mr-3 mt-0.5 ${
-                      acceptTerms 
-                        ? 'bg-avc-red border-avc-red' 
-                        : termsError 
-                          ? 'border-red-500 bg-red-50' 
-                          : 'border-gray-300 bg-gray-50'
+                      acceptTerms
+                        ? "bg-avc-red border-avc-red"
+                        : termsError
+                        ? "border-red-500 bg-red-50"
+                        : "border-gray-300 bg-gray-50"
                     }`}
                   >
-                    {acceptTerms && <Text className="text-white text-xs">✓</Text>}
+                    {acceptTerms && (
+                      <Text className="text-white text-xs">✓</Text>
+                    )}
                   </View>
                   <Text className="text-sm text-gray-500 font-montserrat-medium flex-1">
-                    Acepto los{' '}
-                    <Text className="text-avc-red font-montserrat-bold">Términos</Text> y la
-                    Política de Privacidad.
+                    Acepto los{" "}
+                    <Text className="text-avc-red font-montserrat-bold">
+                      Términos
+                    </Text>{" "}
+                    y la Política de Privacidad.
                   </Text>
                 </TouchableOpacity>
                 {termsError ? (
-                  <Text className="text-xs text-red-500 ml-8 mt-1 font-montserrat">{termsError}</Text>
+                  <Text className="text-xs text-red-500 ml-8 mt-1 font-montserrat">
+                    {termsError}
+                  </Text>
                 ) : null}
               </View>
 
@@ -279,10 +312,10 @@ export default function RegisterScreen() {
             {/* Footer */}
             <View className="pt-6 items-center border-t border-gray-100 mt-6">
               <Text className="text-sm text-gray-500 font-montserrat pt-4">
-                ¿Ya tienes cuenta?{' '}
+                ¿Ya tienes cuenta?{" "}
                 <Text
                   className="font-montserrat-bold text-avc-red"
-                  onPress={() => router.back()}
+                  onPress={() => navigation.goBack()}
                 >
                   Inicia Sesión
                 </Text>

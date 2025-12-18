@@ -1,22 +1,33 @@
-import { Button } from '@/components/ui';
-import { useAuth } from '@/context/AuthContext';
-import { router } from 'expo-router';
-import { CheckCircle, Mail, RefreshCw } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button } from "@/components/ui";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { CheckCircle, Mail, RefreshCw } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
+import { Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+type AuthNavigation = NativeStackNavigationProp<any>;
 
 export default function VerifyEmailScreen() {
-  const { user, isEmailVerified, resendVerificationEmail, refreshUserData, signOut, loading } = useAuth();
+  const navigation = useNavigation<AuthNavigation>();
+  const {
+    user,
+    isEmailVerified,
+    resendVerificationEmail,
+    refreshUserData,
+    signOut,
+    loading,
+  } = useAuth();
   const [resendSuccess, setResendSuccess] = useState(false);
   const [checking, setChecking] = useState(false);
 
   // Si ya está verificado, redirigir a pantalla de bienvenida
   useEffect(() => {
     if (isEmailVerified) {
-      router.replace('/auth/welcome');
+      navigation.navigate("Welcome");
     }
-  }, [isEmailVerified]);
+  }, [isEmailVerified, navigation]);
 
   const handleResendEmail = async () => {
     try {
@@ -36,7 +47,7 @@ export default function VerifyEmailScreen() {
 
   const handleBackToLogin = async () => {
     await signOut();
-    router.replace('/auth/login');
+    navigation.navigate("Login");
   };
 
   return (
@@ -56,7 +67,7 @@ export default function VerifyEmailScreen() {
         <Text className="text-base text-gray-500 font-montserrat text-center mb-2 px-4">
           Hemos enviado un enlace de verificación a:
         </Text>
-        
+
         <Text className="text-base font-montserrat-bold text-avc-red text-center mb-8">
           {user?.email}
         </Text>
@@ -67,8 +78,8 @@ export default function VerifyEmailScreen() {
             ⚠️ Revisa tu carpeta de SPAM
           </Text>
           <Text className="text-sm text-amber-700 font-montserrat leading-relaxed text-center">
-            El correo de verificación suele llegar a la carpeta de spam o correo no deseado. 
-            Búscalo ahí si no lo ves en tu bandeja de entrada.
+            El correo de verificación suele llegar a la carpeta de spam o correo
+            no deseado. Búscalo ahí si no lo ves en tu bandeja de entrada.
           </Text>
         </View>
 
@@ -90,7 +101,7 @@ export default function VerifyEmailScreen() {
             loading={checking}
             icon={RefreshCw}
           />
-          
+
           <Button
             title="Reenviar correo de verificación"
             onPress={handleResendEmail}
@@ -103,7 +114,7 @@ export default function VerifyEmailScreen() {
         {/* Volver al login */}
         <View className="pt-8">
           <Text className="text-sm text-gray-500 font-montserrat text-center">
-            ¿Correo incorrecto?{' '}
+            ¿Correo incorrecto?{" "}
             <Text
               className="font-montserrat-bold text-avc-red"
               onPress={handleBackToLogin}
