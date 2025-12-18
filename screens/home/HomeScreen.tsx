@@ -531,11 +531,7 @@ export default function DashboardScreen() {
               {firstName} <Text>🔥</Text>
             </Text>
           </View>
-<<<<<<<< HEAD:app/(app)/(tabs)/index.tsx
-          <TouchableOpacity onPress={() => router.push('/profile')}>
-========
           <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
->>>>>>>> 3ff5e705df4f546dce364dc64fa6ac067cdf47fd:screens/home/HomeScreen.tsx
             <View className="relative">
               <Image
                 source={{ uri: "https://i.pravatar.cc/150?img=11" }}
@@ -777,11 +773,7 @@ export default function DashboardScreen() {
                 <TouchableOpacity
                   className="bg-avc-red py-3.5 px-8 rounded-xl shadow-sm"
                   activeOpacity={0.8}
-<<<<<<<< HEAD:app/(app)/(tabs)/index.tsx
-                  onPress={() => router.push('/booking')}
-========
                   onPress={() => navigation.navigate("Booking")}
->>>>>>>> 3ff5e705df4f546dce364dc64fa6ac067cdf47fd:screens/home/HomeScreen.tsx
                 >
                   <Text className="text-white font-montserrat-bold text-sm">
                     Reservar Clase
@@ -880,15 +872,10 @@ export default function DashboardScreen() {
               Reservar para Mañana
             </Text>
             {clasesMañana.length > 0 && (
-<<<<<<<< HEAD:app/(app)/(tabs)/index.tsx
-              <TouchableOpacity onPress={() => router.push('/booking')}>
-                <Text className="text-sm font-montserrat-bold text-avc-red">Ver todas</Text>
-========
               <TouchableOpacity onPress={() => navigation.navigate("Booking")}>
                 <Text className="text-sm font-montserrat-bold text-avc-red">
                   Ver todas
                 </Text>
->>>>>>>> 3ff5e705df4f546dce364dc64fa6ac067cdf47fd:screens/home/HomeScreen.tsx
               </TouchableOpacity>
             )}
           </View>
@@ -932,11 +919,7 @@ export default function DashboardScreen() {
               </Text>
               <TouchableOpacity
                 className="mt-3"
-<<<<<<<< HEAD:app/(app)/(tabs)/index.tsx
-                onPress={() => router.push('/booking')}
-========
                 onPress={() => navigation.navigate("Booking")}
->>>>>>>> 3ff5e705df4f546dce364dc64fa6ac067cdf47fd:screens/home/HomeScreen.tsx
               >
                 <Text className="text-avc-red font-montserrat-bold text-sm">
                   Ver calendario completo

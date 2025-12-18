@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Calendar, Home, Trophy, User } from "lucide-react-native";
-import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Screens
 import BookingScreen from "@/screens/booking/BookingScreen";
@@ -18,6 +18,8 @@ export type MainTabsParamList = {
 const Tab = createBottomTabNavigator<MainTabsParamList>();
 
 export function MainTabs() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -30,8 +32,8 @@ export function MainTabs() {
           borderTopWidth: 1,
           borderTopColor: "#f3f4f6",
           paddingTop: 8,
-          paddingBottom: Platform.OS === "ios" ? 24 : 8,
-          height: Platform.OS === "ios" ? 88 : 64,
+          paddingBottom: Math.max(insets.bottom, 8),
+          height: 56 + Math.max(insets.bottom, 8),
         },
         tabBarLabelStyle: {
           fontFamily: "Montserrat-SemiBold",

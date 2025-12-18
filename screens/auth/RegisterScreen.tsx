@@ -12,16 +12,6 @@ import {
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-<<<<<<< HEAD:app/auth/register.tsx
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-=======
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -32,7 +22,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type AuthNavigation = NativeStackNavigationProp<any>;
->>>>>>> 3ff5e705df4f546dce364dc64fa6ac067cdf47fd:screens/auth/RegisterScreen.tsx
 
 export default function RegisterScreen() {
   const navigation = useNavigation<AuthNavigation>();
@@ -58,11 +47,7 @@ export default function RegisterScreen() {
   useEffect(() => {
     if (user) {
       if (isEmailVerified) {
-<<<<<<< HEAD:app/auth/register.tsx
-        router.replace('/(app)/(tabs)');
-=======
         navigation.reset({ index: 0, routes: [{ name: "Main" }] });
->>>>>>> 3ff5e705df4f546dce364dc64fa6ac067cdf47fd:screens/auth/RegisterScreen.tsx
       } else {
         // Usuario registrado pero no verificado, ir a verificar
         navigation.navigate("VerifyEmail");
