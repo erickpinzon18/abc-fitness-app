@@ -1,12 +1,8 @@
 import { ConfirmModal, ModalType } from "@/components/ConfirmModal";
-import { StreakAnimation } from "@/components/StreakAnimation";
-import { QuickBookCard } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 import {
   cancelarReservacion,
   Clase,
-  crearReservacion,
-  formatTime,
   getClasesPorFecha,
   getProximaClaseUsuario,
   getWODHoy,
@@ -18,80 +14,29 @@ import {
   getDiasEntrenamientoMes,
   verificarRachaAlIniciar,
 } from "@/lib/streakService";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 import { Timestamp } from "firebase/firestore";
-import {
-  Calendar,
-  CheckCircle,
-  Clock,
-  Dumbbell,
-  MapPin,
-  Play,
-  Plus,
-  Timer,
-  User,
-  X,
-} from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-type RootNavigation = NativeStackNavigationProp<any>;
-
-// Helper para obtener el saludo según la hora
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Buenos días";
-  if (hour < 19) return "Buenas tardes";
-  return "Buenas noches";
+type MainTabsParamList = {
+  Home: undefined;
+  Booking: undefined;
+  Ranking: undefined;
+  Profile: undefined;
 };
 
-// Helper para formatear fecha de la próxima clase
-const formatNextClassDate = (
-  fecha: Date | Timestamp
-): { label: string; day: string } => {
-  // Convertir Timestamp a Date si es necesario
-  const fechaDate = fecha instanceof Timestamp ? fecha.toDate() : fecha;
-
-  const hoy = new Date();
-  const manana = new Date(hoy);
-  manana.setDate(manana.getDate() + 1);
-
-  // Normalizar las fechas para comparar solo día/mes/año
-  const fechaNorm = new Date(
-    fechaDate.getFullYear(),
-    fechaDate.getMonth(),
-    fechaDate.getDate()
-  );
-  const hoyNorm = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
-  const mananaNorm = new Date(
-    manana.getFullYear(),
-    manana.getMonth(),
-    manana.getDate()
-  );
-
-  if (fechaNorm.getTime() === hoyNorm.getTime()) {
-    return { label: "Hoy", day: fechaDate.getDate().toString() };
-  } else if (fechaNorm.getTime() === mananaNorm.getTime()) {
-    return { label: "Mañana", day: fechaDate.getDate().toString() };
-  } else {
-    const dias = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-    return {
-      label: dias[fechaDate.getDay()],
-      day: fechaDate.getDate().toString(),
-    };
-  }
-};
+type Props = BottomTabScreenProps<MainTabsParamList, "Home">;
 
 // Tipo para el estado de la clase
 type ClassTimeStatus = {
@@ -103,29 +48,35 @@ type ClassTimeStatus = {
   bgColor: string;
 };
 
+// Helper para obtener el saludo según la hora
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Buenos días";
+  if (hour < 19) return "Buenas tardes";
+  return "Buenas noches";
+};
+
 // Helper para calcular el estado temporal de la clase
 const getClassTimeStatus = (
-  fecha: Date | Timestamp,
+  fecha: Date,
   horaInicio: string,
   horaFin: string
 ): ClassTimeStatus => {
-  const fechaDate = fecha instanceof Timestamp ? fecha.toDate() : fecha;
   const ahora = new Date();
 
   // Crear fecha/hora de inicio y fin de la clase
   const [horaIni, minIni] = horaInicio.split(":").map(Number);
   const [horaEnd, minEnd] = horaFin.split(":").map(Number);
 
-  const inicioClase = new Date(fechaDate);
+  const inicioClase = new Date(fecha);
   inicioClase.setHours(horaIni, minIni, 0, 0);
 
-  const finClase = new Date(fechaDate);
+  const finClase = new Date(fecha);
   finClase.setHours(horaEnd, minEnd, 0, 0);
 
   const diffMs = inicioClase.getTime() - ahora.getTime();
   const diffMins = Math.floor(diffMs / (1000 * 60));
   const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
 
   // Ya terminó la clase
   if (ahora > finClase) {
@@ -165,92 +116,66 @@ const getClassTimeStatus = (
     };
   }
 
-  // Falta poco (menos de 2 horas)
-  if (diffMins > 30 && diffMins <= 120) {
-    return {
-      status: "upcoming",
-      label: "Próximamente",
-      timeLeft: `en ${
-        diffHours > 0 ? `${diffHours}h ${diffMins % 60}m` : `${diffMins} min`
-      }`,
-      canCheckIn: false,
-      color: "#6b7280",
-      bgColor: "#f3f4f6",
-    };
-  }
-
-  // Falta más tiempo
-  if (diffDays > 0) {
-    return {
-      status: "upcoming",
-      label: "Próximamente",
-      timeLeft: diffDays === 1 ? "mañana" : `en ${diffDays} días`,
-      canCheckIn: false,
-      color: "#6b7280",
-      bgColor: "#f3f4f6",
-    };
-  }
-
   // Falta varias horas
   return {
     status: "upcoming",
     label: "Próximamente",
-    timeLeft: `en ${diffHours}h ${diffMins % 60}m`,
+    timeLeft:
+      diffHours > 0
+        ? `en ${diffHours}h ${diffMins % 60}m`
+        : `en ${diffMins} min`,
     canCheckIn: false,
     color: "#6b7280",
     bgColor: "#f3f4f6",
   };
 };
 
-export default function DashboardScreen() {
-  const navigation = useNavigation<RootNavigation>();
-  const { userData, user, refreshUserData, initializing } = useAuth();
+export default function DashboardScreen({ navigation }: Props) {
+  const { userData, user, refreshUserData } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [proximaClase, setProximaClase] = useState<
     (UserReservation & { id: string }) | null
   >(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [clasesMañana, setClasesMañana] = useState<Clase[]>([]);
   const [diasEntrenamiento, setDiasEntrenamiento] = useState(0);
   const [streak, setStreak] = useState(userData?.streak || 0);
   const [streakAnimating, setStreakAnimating] = useState(false);
-  const [clasesMañana, setClasesMañana] = useState<Clase[]>([]);
-  const [loadingMañana, setLoadingMañana] = useState(true);
   const [wodHoy, setWodHoy] = useState<WOD | null>(null);
+  const [timeStatus, setTimeStatus] = useState<ClassTimeStatus | null>(null);
 
-  // Estado del modal
+  // Modal state
   const [modalVisible, setModalVisible] = useState(false);
   const [modalType, setModalType] = useState<ModalType>("checkin");
   const [modalMessage, setModalMessage] = useState("");
   const [modalTitle, setModalTitle] = useState("");
-  const [modalLoading, setModalLoading] = useState(false);
 
-  // Estado para reservar clase de mañana
-  const [selectedClaseReservar, setSelectedClaseReservar] =
-    useState<Clase | null>(null);
-
-  // Estado del tiempo (se actualiza cada minuto)
-  const [timeStatus, setTimeStatus] = useState<ClassTimeStatus | null>(null);
-
-  // Obtener el primer nombre
   const firstName = userData?.displayName?.split(" ")[0] || "Atleta";
 
-  // Cargar clases de mañana
+  console.log("🏠 HomeScreen rendered - test version with more UI");
+
+  const cargarProximaClase = useCallback(async () => {
+    if (!user) return;
+    try {
+      const clase = await getProximaClaseUsuario(user.uid);
+      setProximaClase(clase);
+    } catch (error) {
+      console.error("Error cargando próxima clase:", error);
+    }
+  }, [user]);
+
   const cargarClasesMañana = useCallback(async () => {
     try {
       const mañana = new Date();
       mañana.setDate(mañana.getDate() + 1);
       mañana.setHours(0, 0, 0, 0);
-
       const clases = await getClasesPorFecha(mañana);
       setClasesMañana(clases);
     } catch (error) {
       console.error("Error cargando clases de mañana:", error);
-    } finally {
-      setLoadingMañana(false);
     }
   }, []);
 
-  // Cargar WOD del día
   const cargarWOD = useCallback(async () => {
     try {
       const wod = await getWODHoy();
@@ -260,43 +185,32 @@ export default function DashboardScreen() {
     }
   }, []);
 
-  // Cargar datos iniciales
-  const cargarDatos = useCallback(async () => {
-    if (!user?.uid) return;
-
+  const verificarRacha = useCallback(async () => {
+    if (!user) return;
     try {
-      // Verificar racha al iniciar (puede resetearla si perdió días)
-      const streakData = await verificarRachaAlIniciar(user.uid);
-      setStreak(streakData.currentStreak);
-
-      // Obtener días de entrenamiento del mes
       const dias = await getDiasEntrenamientoMes(user.uid);
       setDiasEntrenamiento(dias);
 
-      // Obtener próxima clase
-      const clase = await getProximaClaseUsuario(user.uid);
-      setProximaClase(clase);
-
-      // Cargar clases de mañana y WOD
-      await Promise.all([cargarClasesMañana(), cargarWOD()]);
+      const resultado = await verificarRachaAlIniciar(user.uid);
+      setStreak(resultado.currentStreak);
     } catch (error) {
-      console.error("Error cargando datos:", error);
-    } finally {
+      console.error("Error verificando racha:", error);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([
+        cargarProximaClase(),
+        cargarClasesMañana(),
+        cargarWOD(),
+        verificarRacha(),
+      ]);
       setLoading(false);
-      setRefreshing(false);
-    }
-  }, [user?.uid, cargarClasesMañana, cargarWOD]);
-
-  useEffect(() => {
-    cargarDatos();
-  }, [cargarDatos]);
-
-  // Actualizar streak cuando cambie userData
-  useEffect(() => {
-    if (userData?.streak !== undefined) {
-      setStreak(userData.streak);
-    }
-  }, [userData?.streak]);
+    };
+    loadData();
+  }, [cargarProximaClase, cargarClasesMañana, cargarWOD, verificarRacha]);
 
   // Actualizar estado del tiempo cada 30 segundos
   useEffect(() => {
@@ -306,8 +220,12 @@ export default function DashboardScreen() {
     }
 
     const updateTimeStatus = () => {
+      const fechaClase =
+        proximaClase.fecha instanceof Timestamp
+          ? proximaClase.fecha.toDate()
+          : proximaClase.fecha;
       const status = getClassTimeStatus(
-        proximaClase.fecha,
+        fechaClase,
         proximaClase.horaInicio,
         proximaClase.horaFin
       );
@@ -320,12 +238,26 @@ export default function DashboardScreen() {
     return () => clearInterval(interval);
   }, [proximaClase]);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    cargarDatos();
-  }, [cargarDatos]);
+    await Promise.all([
+      cargarProximaClase(),
+      cargarClasesMañana(),
+      cargarWOD(),
+      verificarRacha(),
+    ]);
+    setRefreshing(false);
+  }, [cargarProximaClase, cargarClasesMañana, cargarWOD, verificarRacha]);
 
-  // Mostrar modal de check-in
+  const goToBooking = () => {
+    navigation.navigate("Booking");
+  };
+
+  const goToProfile = () => {
+    navigation.navigate("Profile");
+  };
+
+  // Modal handlers
   const showCheckInModal = () => {
     setModalType("checkin");
     setModalTitle("¡Ya llegué! 🏋️");
@@ -333,7 +265,6 @@ export default function DashboardScreen() {
     setModalVisible(true);
   };
 
-  // Mostrar modal de cancelar
   const showCancelModal = () => {
     setModalType("cancel");
     setModalTitle("Cancelar Reservación");
@@ -341,50 +272,28 @@ export default function DashboardScreen() {
     setModalVisible(true);
   };
 
-  // Cerrar modal
-  const closeModal = () => {
-    setModalVisible(false);
-    setModalLoading(false);
-  };
-
-  // Confirmar acción del modal
   const handleModalConfirm = async () => {
     if (!proximaClase || !user?.uid) return;
-
-    setModalLoading(true);
 
     try {
       if (modalType === "checkin") {
         const result = await hacerCheckIn(proximaClase.claseId, user.uid);
         if (result.success) {
-          closeModal();
-          // Actualizar la racha local y activar animación
-          if (result.newStreak !== undefined) {
-            setStreak(result.newStreak);
-            // Activar animación de racha si aumentó
-            setStreakAnimating(true);
-          }
-          // Actualizar días de entrenamiento
-          const dias = await getDiasEntrenamientoMes(user.uid);
-          setDiasEntrenamiento(dias);
-
+          setModalVisible(false);
           setModalType("success");
           setModalTitle("¡Listo! 💪");
-          setModalMessage(
-            result.streakMessage || "¡Check-in realizado! A entrenar duro"
-          );
+          setModalMessage(result.streakMessage || "¡Check-in realizado!");
           setModalVisible(true);
 
-          // Recargar datos
-          const clase = await getProximaClaseUsuario(user.uid);
-          setProximaClase(clase);
-
-          // Refrescar userData para actualizar streak en todo lado
-          if (refreshUserData) {
-            refreshUserData();
+          if (result.newStreak !== undefined) {
+            setStreak(result.newStreak);
+            setStreakAnimating(true);
           }
+
+          await cargarProximaClase();
+          await refreshUserData();
         } else {
-          closeModal();
+          setModalVisible(false);
           setModalType("error");
           setModalTitle("Error");
           setModalMessage(result.error || "No se pudo hacer check-in");
@@ -396,17 +305,14 @@ export default function DashboardScreen() {
           user.uid
         );
         if (result.success) {
-          closeModal();
+          setModalVisible(false);
           setModalType("success");
           setModalTitle("Cancelado");
           setModalMessage("Tu reservación ha sido cancelada");
           setModalVisible(true);
-
-          // Recargar próxima clase
-          const clase = await getProximaClaseUsuario(user.uid);
-          setProximaClase(clase);
+          await cargarProximaClase();
         } else {
-          closeModal();
+          setModalVisible(false);
           setModalType("error");
           setModalTitle("Error");
           setModalMessage(result.error || "No se pudo cancelar");
@@ -414,7 +320,7 @@ export default function DashboardScreen() {
         }
       }
     } catch (error) {
-      closeModal();
+      setModalVisible(false);
       setModalType("error");
       setModalTitle("Error");
       setModalMessage("Ocurrió un error. Intenta de nuevo.");
@@ -422,96 +328,22 @@ export default function DashboardScreen() {
     }
   };
 
-  // Mostrar modal para reservar clase de mañana
-  const showReservarModal = (clase: Clase) => {
-    setSelectedClaseReservar(clase);
-    setModalType("reserve");
-    setModalTitle("Reservar Clase");
-    setModalMessage("¿Deseas reservar esta clase para mañana?");
-    setModalVisible(true);
-  };
-
-  // Confirmar reservación de clase de mañana
-  const handleReservarConfirm = async () => {
-    if (!selectedClaseReservar || !user?.uid || !userData) return;
-
-    setModalLoading(true);
-
-    try {
-      const result = await crearReservacion(
-        selectedClaseReservar.id,
-        user.uid,
-        userData.displayName || "Usuario",
-        user.email || ""
-      );
-
-      if (result.success) {
-        closeModal();
-        setModalType("success");
-        setModalTitle("¡Reservado! 🎉");
-        setModalMessage(
-          `Tu clase de ${selectedClaseReservar.clase} está confirmada para mañana`
-        );
-        setModalVisible(true);
-
-        // Recargar clases de mañana y próxima clase
-        await cargarClasesMañana();
-        const clase = await getProximaClaseUsuario(user.uid);
-        setProximaClase(clase);
-
-        setSelectedClaseReservar(null);
-      } else {
-        closeModal();
-        setModalType("error");
-        setModalTitle("Error");
-        setModalMessage(result.error || "No se pudo reservar la clase");
-        setModalVisible(true);
-      }
-    } catch (error) {
-      closeModal();
-      setModalType("error");
-      setModalTitle("Error");
-      setModalMessage("Ocurrió un error. Intenta de nuevo.");
-      setModalVisible(true);
-    }
-  };
-
-  // Manejar confirmación del modal según el tipo
-  const handleConfirm = () => {
-    if (modalType === "reserve") {
-      handleReservarConfirm();
-    } else {
-      handleModalConfirm();
-    }
-  };
-
-  // Formatear la fecha de la próxima clase
-  const fechaInfo = proximaClase
-    ? formatNextClassDate(proximaClase.fecha)
-    : null;
-
-  // Mostrar loading mientras Firebase inicializa o no hay usuario
-  if (initializing || !user) {
+  if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#f5f5f5",
-        }}
-      >
-        <ActivityIndicator size="large" color="#dc2626" />
-      </View>
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#dc2626" />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-avc-gray" edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView
-        className="flex-1 px-5"
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -522,129 +354,64 @@ export default function DashboardScreen() {
         }
       >
         {/* Header */}
-        <View className="flex-row justify-between items-center py-4">
+        <View style={styles.header}>
           <View>
-            <Text className="text-gray-500 text-sm font-montserrat-medium">
-              {getGreeting()},
-            </Text>
-            <Text className="text-2xl font-montserrat-bold text-gray-900">
-              {firstName} <Text>🔥</Text>
-            </Text>
+            <Text style={styles.greeting}>{getGreeting()},</Text>
+            <Text style={styles.name}>{firstName} 🔥</Text>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate("Profile")}>
-            <View className="relative">
+          <TouchableOpacity onPress={goToProfile}>
+            <View style={styles.avatarContainer}>
               <Image
                 source={{ uri: "https://i.pravatar.cc/150?img=11" }}
-                className="w-12 h-12 rounded-full border-2 border-white"
+                style={styles.avatar}
               />
-              <View className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full" />
+              <View style={styles.onlineIndicator} />
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Stats Cards */}
-        <View className="flex-row gap-4 mb-6">
-          {/* Card 1: Clases este mes */}
-          <View className="flex-1 bg-white rounded-2xl p-4 shadow-sm flex-row items-center justify-between">
-            <View>
-              <Text className="text-xs text-gray-500 font-montserrat-semibold uppercase tracking-wide">
-                Este Mes
-              </Text>
-              <Text className="text-2xl font-montserrat-bold text-gray-900">
-                {diasEntrenamiento}{" "}
-                <Text className="text-xs text-gray-400 font-montserrat">
-                  días
-                </Text>
-              </Text>
-            </View>
-            <View
-              className="w-[60px] h-[60px] rounded-full border-4 border-gray-100 items-center justify-center"
-              style={{
-                borderLeftColor: "#dc2626",
-                borderTopColor: "#dc2626",
-                borderBottomColor:
-                  diasEntrenamiento >= 10 ? "#dc2626" : "#e5e7eb",
-                transform: [{ rotate: "-45deg" }],
-              }}
-            >
-              <Text
-                className="font-montserrat-bold text-sm text-gray-900"
-                style={{ transform: [{ rotate: "45deg" }] }}
-              >
-                {Math.round((diasEntrenamiento / 20) * 100)}%
-              </Text>
-            </View>
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Este Mes</Text>
+            <Text style={styles.statValue}>
+              {diasEntrenamiento} <Text style={styles.statUnit}>días</Text>
+            </Text>
           </View>
-
-          {/* Card 2: Racha con animación */}
-          <View
-            className={`w-1/3 rounded-2xl p-4 shadow-sm items-center justify-center border ${
-              streak > 0
-                ? "bg-red-50 border-red-100"
-                : "bg-gray-50 border-gray-100"
-            }`}
-          >
-            <StreakAnimation
-              streak={streak}
-              isAnimating={streakAnimating}
-              onAnimationComplete={() => setStreakAnimating(false)}
-            />
+          <View style={[styles.statCard, styles.streakCard]}>
+            <Text style={styles.streakValue}>{streak}</Text>
+            <Text style={styles.streakLabel}>🔥 Racha</Text>
           </View>
         </View>
 
         {/* Next Class */}
-        <View className="mb-8">
-          <View className="flex-row justify-between items-end mb-3">
-            <Text className="text-lg font-montserrat-bold text-gray-900">
-              Tu Próxima Clase
-            </Text>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Tu Próxima Clase</Text>
             {proximaClase && (
-              <View className="bg-green-100 px-2 py-1 rounded-md">
-                <Text className="text-xs font-montserrat-semibold text-green-700">
-                  {proximaClase.status === "confirmada"
-                    ? "Confirmada"
-                    : proximaClase.status === "checked-in"
+              <View
+                style={[styles.statusBadge, { backgroundColor: "#dcfce7" }]}
+              >
+                <Text style={[styles.statusBadgeText, { color: "#16a34a" }]}>
+                  {proximaClase.status === "checked-in"
                     ? "Check-in ✓"
-                    : proximaClase.status}
+                    : "Confirmada"}
                 </Text>
               </View>
             )}
           </View>
-
-          {loading ? (
-            // Estado de carga
-            <View className="bg-white rounded-3xl p-8 shadow-sm items-center justify-center">
-              <ActivityIndicator size="large" color="#dc2626" />
-              <Text className="text-gray-500 text-sm font-montserrat mt-3">
-                Cargando...
-              </Text>
-            </View>
-          ) : proximaClase && fechaInfo ? (
-            // Card de próxima clase con datos reales
-            <View className="bg-white rounded-3xl p-5 shadow-sm relative overflow-hidden">
-              {/* Decorative blob */}
-              <View className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-red-50 rounded-full" />
-
-              {/* Badge de tiempo */}
+          {proximaClase ? (
+            <View style={styles.classCard}>
+              {/* Time status badge */}
               {timeStatus && (
                 <View
-                  className="absolute top-3 right-3 px-3 py-1.5 rounded-full flex-row items-center gap-1.5 z-20"
-                  style={{ backgroundColor: timeStatus.bgColor }}
+                  style={[
+                    styles.timeBadge,
+                    { backgroundColor: timeStatus.bgColor },
+                  ]}
                 >
-                  {timeStatus.status === "live" ? (
-                    <Play
-                      size={12}
-                      color={timeStatus.color}
-                      fill={timeStatus.color}
-                    />
-                  ) : timeStatus.status === "ended" ? (
-                    <CheckCircle size={12} color={timeStatus.color} />
-                  ) : (
-                    <Timer size={12} color={timeStatus.color} />
-                  )}
                   <Text
-                    className="text-xs font-montserrat-bold"
-                    style={{ color: timeStatus.color }}
+                    style={[styles.timeBadgeText, { color: timeStatus.color }]}
                   >
                     {timeStatus.status === "ended" ||
                     timeStatus.status === "live"
@@ -654,310 +421,431 @@ export default function DashboardScreen() {
                 </View>
               )}
 
-              <View className="flex-row justify-between items-start relative z-10">
-                <View className="flex-row gap-4">
-                  <View className="bg-gray-100 rounded-2xl w-16 h-16 items-center justify-center">
-                    <Text className="text-xs font-montserrat-bold uppercase text-gray-800">
-                      {fechaInfo.label}
-                    </Text>
-                    <Text className="text-xl font-montserrat-bold text-gray-800">
-                      {fechaInfo.day}
-                    </Text>
-                  </View>
-                  <View className="flex-1 pr-20">
-                    <Text
-                      className="text-xl font-montserrat-bold text-gray-900"
-                      numberOfLines={1}
-                    >
-                      {proximaClase.claseNombre}
-                    </Text>
-                    <View className="flex-row items-center gap-1 mt-1">
-                      <Clock size={14} color="#6b7280" />
-                      <Text className="text-gray-500 text-sm font-montserrat">
-                        {proximaClase.horaInicio} - {proximaClase.horaFin}
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center gap-1 mt-0.5">
-                      <User size={14} color="#6b7280" />
-                      <Text className="text-gray-500 text-sm font-montserrat">
-                        {proximaClase.instructor}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
+              <Text style={styles.className}>{proximaClase.claseNombre}</Text>
+              <Text style={styles.classTime}>
+                {proximaClase.horaInicio} - {proximaClase.horaFin}
+              </Text>
+              <Text style={styles.classInstructor}>
+                {proximaClase.instructor}
+              </Text>
 
-              <View className="mt-5 pt-4 border-t border-gray-100 flex-row gap-3 relative z-10">
-                {/* Ya pasó la clase y asistí */}
-                {timeStatus?.status === "ended" &&
-                proximaClase.status === "checked-in" ? (
-                  <View className="flex-1 bg-green-100 py-3.5 rounded-xl items-center flex-row justify-center gap-2">
-                    <CheckCircle size={18} color="#16a34a" />
-                    <Text className="text-green-700 font-montserrat-bold text-sm">
-                      ¡Asististe! 💪
-                    </Text>
-                  </View>
-                ) : proximaClase.status === "checked-in" ? (
-                  // Ya hizo check-in pero la clase no ha terminado
-                  <View className="flex-1 bg-green-100 py-3.5 rounded-xl items-center flex-row justify-center gap-2">
-                    <CheckCircle size={18} color="#16a34a" />
-                    <Text className="text-green-700 font-montserrat-bold text-sm">
-                      ¡Ya estás aquí! 🏋️
-                    </Text>
+              {/* Buttons */}
+              <View style={styles.classButtons}>
+                {proximaClase.status === "checked-in" ? (
+                  <View style={styles.checkedInBadge}>
+                    <Text style={styles.checkedInText}>✓ Ya estás aquí</Text>
                   </View>
                 ) : timeStatus?.canCheckIn ? (
-                  // Puede hacer check-in (clase próxima o en vivo)
                   <>
                     <TouchableOpacity
-                      className="flex-1 py-3.5 rounded-xl items-center shadow-sm flex-row justify-center gap-2"
-                      style={{
-                        backgroundColor:
-                          timeStatus.status === "live" ? "#16a34a" : "#dc2626",
-                      }}
-                      activeOpacity={0.8}
+                      style={[
+                        styles.checkInButton,
+                        timeStatus.status === "live" && {
+                          backgroundColor: "#16a34a",
+                        },
+                      ]}
                       onPress={showCheckInModal}
                     >
-                      <MapPin size={16} color="#ffffff" />
-                      <Text className="text-white font-montserrat-bold text-sm">
+                      <Text style={styles.checkInButtonText}>
                         {timeStatus.status === "live"
                           ? "¡Ya llegué!"
                           : "Ya estoy aquí"}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      className="w-12 h-12 items-center justify-center border border-gray-200 rounded-xl"
-                      activeOpacity={0.8}
+                      style={styles.cancelButton}
                       onPress={showCancelModal}
                     >
-                      <X size={20} color="#9ca3af" />
+                      <Text style={styles.cancelButtonText}>Cancelar</Text>
                     </TouchableOpacity>
                   </>
                 ) : (
-                  // No puede hacer check-in todavía
                   <>
-                    <View className="flex-1 bg-gray-100 py-3.5 rounded-xl items-center">
-                      <Text className="text-gray-500 font-montserrat-bold text-sm">
+                    <View style={styles.waitingButton}>
+                      <Text style={styles.waitingButtonText}>
                         {timeStatus?.timeLeft
-                          ? `Confirmar asistencia ${timeStatus.timeLeft}`
+                          ? `Check-in ${timeStatus.timeLeft}`
                           : "Esperando..."}
                       </Text>
                     </View>
                     <TouchableOpacity
-                      className="w-12 h-12 items-center justify-center border border-gray-200 rounded-xl"
-                      activeOpacity={0.8}
+                      style={styles.cancelButton}
                       onPress={showCancelModal}
                     >
-                      <X size={20} color="#9ca3af" />
+                      <Text style={styles.cancelButtonText}>Cancelar</Text>
                     </TouchableOpacity>
                   </>
                 )}
               </View>
             </View>
           ) : (
-            // Estado vacío - Sin clases reservadas
-            <View className="bg-white rounded-3xl p-6 shadow-sm items-center relative overflow-hidden">
-              {/* Decorative elements */}
-              <View className="absolute top-0 left-0 -mt-8 -ml-8 w-24 h-24 bg-red-50 rounded-full opacity-50" />
-              <View className="absolute bottom-0 right-0 -mb-8 -mr-8 w-32 h-32 bg-gray-50 rounded-full" />
-
-              <View className="relative z-10 items-center py-4">
-                <View className="w-20 h-20 bg-gray-100 rounded-full items-center justify-center mb-4">
-                  <Calendar size={36} color="#9ca3af" />
-                </View>
-                <Text className="text-lg font-montserrat-bold text-gray-900 text-center mb-1">
-                  Sin clases reservadas
-                </Text>
-                <Text className="text-sm text-gray-500 font-montserrat text-center mb-5 px-4">
-                  Reserva tu próxima clase y mantén tu racha de entrenamiento 💪
-                </Text>
-                <TouchableOpacity
-                  className="bg-avc-red py-3.5 px-8 rounded-xl shadow-sm"
-                  activeOpacity={0.8}
-                  onPress={() => navigation.navigate("Booking")}
-                >
-                  <Text className="text-white font-montserrat-bold text-sm">
-                    Reservar Clase
-                  </Text>
-                </TouchableOpacity>
-              </View>
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>Sin clases reservadas</Text>
+              <TouchableOpacity style={styles.bookButton} onPress={goToBooking}>
+                <Text style={styles.bookButtonText}>Reservar Clase</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
 
-        {/* WOD del Día */}
-        <View className="mb-8">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-lg font-montserrat-bold text-gray-900">
-              WOD de Hoy
-            </Text>
-            {wodHoy && (
-              <TouchableOpacity>
-                <Text className="text-sm font-montserrat-bold text-avc-red">
-                  Ver Detalle
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {wodHoy ? (
-            <View className="bg-gray-900 rounded-3xl p-6 shadow-lg relative overflow-hidden">
-              <View className="relative z-10">
-                <View className="flex-row justify-between items-start mb-4">
-                  <View className="flex-1 pr-4">
-                    <View className="bg-white/20 px-2 py-1 rounded self-start mb-2">
-                      <Text className="text-xs font-montserrat-bold text-white">
-                        {wodHoy.modalidad.toUpperCase()}
-                        {wodHoy.timeCap ? ` ${wodHoy.timeCap}'` : ""}
-                      </Text>
-                    </View>
-                    <Text className="text-2xl font-montserrat-bold text-white">
-                      "{wodHoy.titulo}"
-                    </Text>
-                  </View>
-                  <Dumbbell size={32} color="#6b7280" />
-                </View>
-
-                <View className="space-y-2">
-                  {wodHoy.ejercicios.slice(0, 4).map((ejercicio, index) => (
-                    <View key={index} className="flex-row items-center gap-3">
-                      <View className="w-6 h-6 rounded-full bg-avc-red items-center justify-center">
-                        <Text className="text-[10px] font-montserrat-bold text-white">
-                          {index + 1}
-                        </Text>
-                      </View>
-                      <Text className="text-gray-300 text-sm font-montserrat">
-                        {ejercicio.cantidad} {ejercicio.nombre}
-                      </Text>
-                    </View>
-                  ))}
-                  {wodHoy.ejercicios.length > 4 && (
-                    <Text className="pl-9 text-xs text-gray-500 font-montserrat">
-                      + {wodHoy.ejercicios.length - 4} ejercicios más...
-                    </Text>
-                  )}
-                </View>
-
-                {wodHoy.notas && (
-                  <View className="mt-3 bg-white/10 rounded-lg p-3">
-                    <Text className="text-xs text-gray-400 font-montserrat-medium">
-                      {wodHoy.notas}
-                    </Text>
-                  </View>
-                )}
-
-                <View className="mt-4 pt-4 border-t border-gray-700 flex-row justify-between items-center">
-                  <Text className="text-xs text-gray-400 font-montserrat">
-                    Registrar Resultado
-                  </Text>
-                  <TouchableOpacity className="w-8 h-8 bg-white rounded-full items-center justify-center">
-                    <Plus size={16} color="#111827" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          ) : (
-            <View className="bg-gray-100 rounded-3xl p-6 items-center justify-center">
-              <Dumbbell size={32} color="#9ca3af" />
-              <Text className="text-gray-500 font-montserrat-medium mt-2">
-                No hay WOD programado para hoy
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Reservar para Mañana */}
-        <View className="mb-6">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-lg font-montserrat-bold text-gray-900">
-              Reservar para Mañana
-            </Text>
-            {clasesMañana.length > 0 && (
-              <TouchableOpacity onPress={() => navigation.navigate("Booking")}>
-                <Text className="text-sm font-montserrat-bold text-avc-red">
-                  Ver todas
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {loadingMañana ? (
-            <View className="bg-white rounded-2xl p-6 items-center justify-center">
-              <ActivityIndicator size="small" color="#dc2626" />
-            </View>
-          ) : clasesMañana.length > 0 ? (
-            <FlatList
-              data={clasesMañana}
+        {/* Tomorrow's Classes */}
+        {clasesMañana.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Clases de Mañana</Text>
+            <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={{ gap: 16, paddingRight: 20 }}
-              renderItem={({ item }) => {
-                // Protección por si horaInicio es undefined
-                if (!item.horaInicio) return null;
+              contentContainerStyle={styles.horizontalScroll}
+            >
+              {clasesMañana.map((clase) => (
+                <TouchableOpacity
+                  key={clase.id}
+                  style={styles.quickBookCard}
+                  onPress={() => {
+                    setModalType("reserve");
+                    setModalTitle("Reservar Clase");
+                    setModalMessage(
+                      `¿Reservar ${clase.clase} a las ${clase.horaInicio}?`
+                    );
+                    setModalVisible(true);
+                  }}
+                >
+                  <Text style={styles.quickBookTime}>{clase.horaInicio}</Text>
+                  <Text style={styles.quickBookName}>{clase.clase}</Text>
+                  <Text style={styles.quickBookInstructor}>
+                    {clase.instructor}
+                  </Text>
+                  <View style={styles.quickBookSpots}>
+                    <Text style={styles.quickBookSpotsText}>
+                      {(clase.capacidadMaxima || 20) -
+                        (clase.reservacionesCount || 0)}{" "}
+                      lugares
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
-                const timeInfo = formatTime(item.horaInicio);
-                const spotsAvailable =
-                  item.capacidadMaxima - (item.reservacionesCount || 0);
-                const isFull = spotsAvailable <= 0;
-
-                return (
-                  <QuickBookCard
-                    time={`${timeInfo.time} ${timeInfo.period}`}
-                    title={item.clase}
-                    spotsAvailable={spotsAvailable}
-                    isFull={isFull}
-                    onPress={() => !isFull && showReservarModal(item)}
-                  />
-                );
-              }}
-            />
-          ) : (
-            <View className="bg-white rounded-2xl p-6 items-center">
-              <Calendar size={32} color="#9ca3af" />
-              <Text className="text-gray-500 font-montserrat-medium text-sm mt-2 text-center">
-                No hay clases programadas para mañana
-              </Text>
-              <TouchableOpacity
-                className="mt-3"
-                onPress={() => navigation.navigate("Booking")}
-              >
-                <Text className="text-avc-red font-montserrat-bold text-sm">
-                  Ver calendario completo
-                </Text>
-              </TouchableOpacity>
+        {/* WOD Preview */}
+        {wodHoy && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>WOD de Hoy</Text>
+            <View style={styles.wodCard}>
+              <Text style={styles.wodName}>{wodHoy.titulo}</Text>
+              <Text style={styles.wodType}>{wodHoy.modalidad}</Text>
             </View>
-          )}
-        </View>
+          </View>
+        )}
       </ScrollView>
 
-      {/* Modal de confirmación */}
       <ConfirmModal
         visible={modalVisible}
         type={modalType}
         title={modalTitle}
         message={modalMessage}
-        loading={modalLoading}
-        clase={
-          // Si estamos reservando, mostrar la clase de mañana seleccionada
-          modalType === "reserve" && selectedClaseReservar
-            ? {
-                nombre: selectedClaseReservar.clase,
-                horaInicio: selectedClaseReservar.horaInicio,
-                horaFin: selectedClaseReservar.horaFin,
-                instructor: selectedClaseReservar.instructor,
-              }
-            : proximaClase
-            ? {
-                nombre: proximaClase.claseNombre,
-                horaInicio: proximaClase.horaInicio,
-                horaFin: proximaClase.horaFin,
-                instructor: proximaClase.instructor,
-              }
-            : null
+        onConfirm={
+          modalType === "success" || modalType === "error"
+            ? () => setModalVisible(false)
+            : handleModalConfirm
         }
-        onConfirm={handleConfirm}
-        onCancel={closeModal}
+        onCancel={() => setModalVisible(false)}
       />
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  greeting: {
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#111827",
+  },
+  avatarContainer: {
+    position: "relative",
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: "#ffffff",
+  },
+  onlineIndicator: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    backgroundColor: "#22c55e",
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: "#ffffff",
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: 16,
+    marginBottom: 24,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    padding: 16,
+    borderRadius: 16,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#6b7280",
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#111827",
+  },
+  statUnit: {
+    fontSize: 12,
+    color: "#9ca3af",
+    fontWeight: "normal",
+  },
+  streakCard: {
+    backgroundColor: "#fef2f2",
+    alignItems: "center",
+  },
+  streakValue: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#dc2626",
+  },
+  streakLabel: {
+    fontSize: 12,
+    color: "#dc2626",
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111827",
+    marginBottom: 12,
+  },
+  classCard: {
+    backgroundColor: "#ffffff",
+    padding: 20,
+    borderRadius: 16,
+  },
+  className: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111827",
+    marginBottom: 8,
+  },
+  classTime: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginBottom: 4,
+  },
+  classInstructor: {
+    fontSize: 14,
+    color: "#9ca3af",
+  },
+  emptyCard: {
+    backgroundColor: "#ffffff",
+    padding: 32,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#6b7280",
+    marginBottom: 16,
+  },
+  bookButton: {
+    backgroundColor: "#dc2626",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  bookButtonText: {
+    color: "#ffffff",
+    fontWeight: "bold",
+  },
+  wodCard: {
+    backgroundColor: "#ffffff",
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: "#dc2626",
+  },
+  wodName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111827",
+    marginBottom: 6,
+  },
+  wodType: {
+    fontSize: 14,
+    color: "#dc2626",
+    fontWeight: "500",
+  },
+  classButtons: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  checkedInBadge: {
+    flex: 1,
+    backgroundColor: "#dcfce7",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  checkedInText: {
+    color: "#16a34a",
+    fontWeight: "bold",
+  },
+  checkInButton: {
+    flex: 1,
+    backgroundColor: "#dc2626",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  checkInButtonText: {
+    color: "#ffffff",
+    fontWeight: "bold",
+  },
+  cancelButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  timeBadge: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  timeBadgeText: {
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  waitingButton: {
+    flex: 1,
+    backgroundColor: "#f3f4f6",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  waitingButtonText: {
+    color: "#6b7280",
+    fontWeight: "500",
+    fontSize: 14,
+  },
+  horizontalScroll: {
+    paddingVertical: 4,
+    gap: 12,
+    flexDirection: "row",
+  },
+  quickBookCard: {
+    backgroundColor: "#ffffff",
+    padding: 16,
+    borderRadius: 16,
+    width: 140,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  quickBookTime: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#dc2626",
+    marginBottom: 4,
+  },
+  quickBookName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  quickBookInstructor: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 8,
+  },
+  quickBookSpots: {
+    backgroundColor: "#dcfce7",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignSelf: "flex-start",
+  },
+  quickBookSpotsText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#16a34a",
+  },
+});

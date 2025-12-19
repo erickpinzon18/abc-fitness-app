@@ -1,6 +1,6 @@
-import { Eye, EyeOff, LucideIcon } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Eye, EyeOff, LucideIcon } from "lucide-react-native";
+import React, { useState } from "react";
+import { Text, TextInput, TouchableOpacity, View } from "react-native";
 
 interface InputProps {
   label?: string;
@@ -9,8 +9,8 @@ interface InputProps {
   onChangeText: (text: string) => void;
   icon?: LucideIcon;
   secureTextEntry?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric';
-  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  keyboardType?: "default" | "email-address" | "phone-pad" | "numeric";
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
   error?: string;
   className?: string;
 }
@@ -22,10 +22,10 @@ export default function Input({
   onChangeText,
   icon: Icon,
   secureTextEntry = false,
-  keyboardType = 'default',
-  autoCapitalize = 'none',
+  keyboardType = "default",
+  autoCapitalize = "none",
   error,
-  className = '',
+  className = "",
 }: InputProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -33,9 +33,9 @@ export default function Input({
   const isPassword = secureTextEntry;
 
   return (
-    <View className={`space-y-1.5 ${className}`}>
+    <View className={`space-y-2.5 ${className}`}>
       {label && (
-        <Text className="text-sm font-montserrat-semibold text-gray-700 ml-1">
+        <Text className="text-sm font-montserrat-semibold text-gray-700 ml-1 mb-1">
           {label}
         </Text>
       )}
@@ -57,10 +57,10 @@ export default function Input({
           onBlur={() => setIsFocused(false)}
           className={`
             w-full py-4 bg-gray-50 border rounded-2xl text-gray-900 font-montserrat
-            ${Icon ? 'pl-12' : 'pl-4'}
-            ${isPassword ? 'pr-12' : 'pr-4'}
-            ${isFocused ? 'border-avc-red' : 'border-gray-200'}
-            ${error ? 'border-red-500' : ''}
+            ${Icon ? "pl-12" : "pl-4"}
+            ${isPassword ? "pr-12" : "pr-4"}
+            ${isFocused ? "border-avc-red" : "border-gray-200"}
+            ${error ? "border-red-500" : ""}
           `}
         />
         {isPassword && (
@@ -77,7 +77,9 @@ export default function Input({
         )}
       </View>
       {error && (
-        <Text className="text-xs text-red-500 ml-1 font-montserrat">{error}</Text>
+        <Text className="text-xs text-red-500 ml-1 font-montserrat">
+          {error}
+        </Text>
       )}
     </View>
   );

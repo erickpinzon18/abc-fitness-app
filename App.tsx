@@ -1,16 +1,173 @@
+import { AuthProvider } from "@/context/AuthContext";
+import ActionsModal from "@/screens/ActionsModal";
+import LoginScreen from "@/screens/auth/LoginScreen";
+import RegisterScreen from "@/screens/auth/RegisterScreen";
+import VerifyEmailScreen from "@/screens/auth/VerifyEmailScreen";
+import WelcomeScreen from "@/screens/auth/WelcomeScreen";
+import BookingScreen from "@/screens/booking/BookingScreen";
+import HomeScreen from "@/screens/home/HomeScreen";
+import ProfileScreen from "@/screens/profile/ProfileScreen";
+import RankingScreen from "@/screens/ranking/RankingScreen";
+import ActiveTimerScreen from "@/screens/timer/ActiveTimerScreen";
+import TimerScreen from "@/screens/timer/TimerScreen";
+import WODScreen from "@/screens/wod/WODScreen";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
+import { Calendar, Home, Trophy, User } from "lucide-react-native";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-
-import { AuthProvider } from "@/context/AuthContext";
-import { RootNavigator } from "@/navigation/RootNavigator";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import "./global.css";
 
 SplashScreen.preventAutoHideAsync();
+
+// Type definitions
+type AuthStackParamList = {
+  Login: undefined;
+  Register: undefined;
+  VerifyEmail: undefined;
+  Welcome: undefined;
+};
+
+type MainTabsParamList = {
+  Home: undefined;
+  Booking: undefined;
+  Ranking: undefined;
+  Profile: undefined;
+};
+
+type RootStackParamList = {
+  Auth: undefined;
+  Main: undefined;
+  Timer: undefined;
+  ActiveTimer: { type: string };
+  WOD: undefined;
+  ActionsModal: undefined;
+};
+
+// Create navigators
+const AuthStackNav = createNativeStackNavigator<AuthStackParamList>();
+const Tab = createBottomTabNavigator<MainTabsParamList>();
+const RootStack = createNativeStackNavigator<RootStackParamList>();
+
+// Auth Stack Component
+function AuthStack() {
+  return (
+    <AuthStackNav.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStackNav.Screen name="Login" component={LoginScreen} />
+      <AuthStackNav.Screen name="Register" component={RegisterScreen} />
+      <AuthStackNav.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+      <AuthStackNav.Screen name="Welcome" component={WelcomeScreen} />
+    </AuthStackNav.Navigator>
+  );
+}
+
+// Main Tabs Component
+function MainTabs() {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: "#dc2626",
+        tabBarInactiveTintColor: "#9ca3af",
+        tabBarStyle: {
+          backgroundColor: "#ffffff",
+          borderTopWidth: 1,
+          borderTopColor: "#f3f4f6",
+          paddingTop: 8,
+          paddingBottom: Math.max(insets.bottom, 8),
+          height: 56 + Math.max(insets.bottom, 8),
+        },
+        tabBarLabelStyle: {
+          fontFamily: "Montserrat-SemiBold",
+          fontSize: 10,
+        },
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarLabel: "Inicio",
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Booking"
+        component={BookingScreen}
+        options={{
+          tabBarLabel: "Reservar",
+          tabBarIcon: ({ color, size }) => (
+            <Calendar size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Ranking"
+        component={RankingScreen}
+        options={{
+          tabBarLabel: "Ranking",
+          tabBarIcon: ({ color, size }) => <Trophy size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: "Perfil",
+          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// Root Navigator
+function RootNavigator() {
+  return (
+    <RootStack.Navigator
+      initialRouteName="Auth"
+      screenOptions={{ headerShown: false }}
+    >
+      <RootStack.Screen name="Auth" component={AuthStack} />
+      <RootStack.Screen name="Main" component={MainTabs} />
+      <RootStack.Screen
+        name="Timer"
+        component={TimerScreen}
+        options={{ animation: "slide_from_right" }}
+      />
+      <RootStack.Screen
+        name="ActiveTimer"
+        component={ActiveTimerScreen}
+        options={{ animation: "slide_from_right" }}
+      />
+      <RootStack.Screen
+        name="WOD"
+        component={WODScreen}
+        options={{ animation: "slide_from_right" }}
+      />
+      <RootStack.Screen
+        name="ActionsModal"
+        component={ActionsModal}
+        options={{
+          presentation: "transparentModal",
+          animation: "fade",
+        }}
+      />
+    </RootStack.Navigator>
+  );
+}
 
 export default function App() {
   const [loaded, error] = useFonts({
@@ -39,10 +196,12 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <AuthProvider>
-          <RootNavigator />
-        </AuthProvider>
+        <NavigationContainer>
+          <StatusBar style="dark" />
+          <AuthProvider>
+            <RootNavigator />
+          </AuthProvider>
+        </NavigationContainer>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

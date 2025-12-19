@@ -41,6 +41,7 @@ export default function LoginScreen() {
     isEmailVerified,
   } = useAuth();
 
+  // (Auto-navegación removida - el usuario siempre verá el login)
   // Redirigir según el estado de autenticación y verificación
   useEffect(() => {
     if (user) {
@@ -100,9 +101,10 @@ export default function LoginScreen() {
 
     try {
       await signIn(email.trim(), password);
-      // La redirección se maneja en el useEffect basado en el estado del usuario
+      // Navegar a Main después de login exitoso
+      navigation.reset({ index: 0, routes: [{ name: "Main" }] });
     } catch (err) {
-      // El error se maneja en el useEffect
+      // El error se maneja en el useEffect de error
     }
   };
 
