@@ -1,194 +1,740 @@
-import { RankingItem } from '@/components/ui';
-import { ChevronDown, Crown } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from "@/context/AuthContext";
+import {
+  getMonthlyRanking,
+  getUserRankingData,
+  RankedUser,
+  UserRankingData,
+} from "@/lib/rankingService";
+import { Crown, Trophy } from "lucide-react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const categories = ['Asistencia', 'WOD Scores', 'PRs'];
-
-const podiumData = [
-  { place: 2, name: 'Sofia', points: 24, avatar: 'https://i.pravatar.cc/150?img=32' },
-  { place: 1, name: 'Carlos', points: 28, avatar: 'https://i.pravatar.cc/150?img=12' },
-  { place: 3, name: 'Miguel', points: 22, avatar: 'https://i.pravatar.cc/150?img=59' },
-];
-
-const rankingList = [
-  { rank: 4, name: 'Lucía Fernández', level: 'Intermedio', points: 20, avatarUrl: 'https://i.pravatar.cc/150?img=5' },
-  { rank: 5, name: 'Roberto M.', level: 'RX', points: 19, avatarUrl: 'https://i.pravatar.cc/150?img=8' },
-  { rank: 6, name: 'Andrea L.', level: 'Scaled', points: 18, avatarUrl: 'https://i.pravatar.cc/150?img=3' },
-  { rank: 7, name: 'Jose Manuel', level: 'Scaled', points: 15, initials: 'JM' },
-  { rank: 8, name: 'Laura G.', level: 'Intermedio', points: 14, avatarUrl: 'https://i.pravatar.cc/150?img=9' },
-  { rank: 9, name: 'Diego H.', level: 'RX', points: 13, avatarUrl: 'https://i.pravatar.cc/150?img=7' },
-];
+type Category = "total" | "asistencia" | "wods";
 
 export default function RankingScreen() {
-  const [selectedCategory, setSelectedCategory] = useState('Asistencia');
+  const { user, userData } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [ranking, setRanking] = useState<RankedUser[]>([]);
+  const [myRanking, setMyRanking] = useState<UserRankingData | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category>("total");
 
-  const getPodiumBorderColor = (place: number) => {
-    switch (place) {
-      case 1:
-        return '#FCD34D'; // Gold
-      case 2:
-        return '#E5E7EB'; // Silver
-      case 3:
-        return '#FDBA74'; // Bronze
+  const loadRanking = useCallback(async () => {
+    try {
+      const [fullRanking, userRanking] = await Promise.all([
+        getMonthlyRanking(),
+        user ? getUserRankingData(user.uid) : null,
+      ]);
+
+      setRanking(fullRanking);
+      setMyRanking(userRanking);
+    } catch (error) {
+      console.error("Error loading ranking:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadRanking();
+  }, [loadRanking]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadRanking();
+  }, [loadRanking]);
+
+  // Ordenar según categoría
+  const getSortedRanking = () => {
+    const sorted = [...ranking];
+    switch (selectedCategory) {
+      case "asistencia":
+        sorted.sort((a, b) => b.checkIns - a.checkIns);
+        break;
+      case "wods":
+        sorted.sort((a, b) => b.wods - a.wods);
+        break;
       default:
-        return '#ffffff';
+        sorted.sort((a, b) => b.points - a.points);
+    }
+    // Re-asignar ranks
+    sorted.forEach((u, i) => (u.rank = i + 1));
+    return sorted;
+  };
+
+  const sortedRanking = getSortedRanking();
+  const topThree = sortedRanking.slice(0, 3);
+  const restOfRanking = sortedRanking.slice(3);
+
+  // Ordenar podio para mostrar: 2do, 1ro, 3ro
+  const podiumOrder = [
+    topThree.find((u) => u.rank === 2),
+    topThree.find((u) => u.rank === 1),
+    topThree.find((u) => u.rank === 3),
+  ].filter(Boolean) as RankedUser[];
+
+  const getScoreLabel = (user: RankedUser) => {
+    switch (selectedCategory) {
+      case "asistencia":
+        return `${user.checkIns} clases`;
+      case "wods":
+        return `${user.wods} WODs`;
+      default:
+        return `${user.points} pts`;
     }
   };
 
-  const getPodiumHeight = (place: number) => {
-    switch (place) {
-      case 1:
-        return 140;
-      case 2:
-        return 100;
-      case 3:
-        return 80;
-      default:
-        return 80;
-    }
+  const getMotivationalMessage = () => {
+    if (!myRanking) return "¡Asiste a tu primera clase!";
+    if (myRanking.rank === 1) return "🏆 ¡Eres el campeón!";
+    if (myRanking.rank <= 3) return "🔥 ¡Estás en el podio!";
+    if (myRanking.rank <= 10)
+      return `⚡ ¡Top 10! ${myRanking.pointsToNextRank} pts para subir`;
+    return `💪 ¡${myRanking.pointsToNextRank} pts para el Top ${
+      myRanking.rank - 1
+    }!`;
   };
 
-  const getBadgeColor = (place: number) => {
-    switch (place) {
-      case 1:
-        return '#F59E0B'; // Gold
-      case 2:
-        return '#9CA3AF'; // Silver
-      case 3:
-        return '#D97706'; // Bronze
-      default:
-        return '#9CA3AF';
-    }
-  };
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#dc2626" />
+          <Text style={styles.loadingText}>Cargando ranking...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView className="flex-1 bg-avc-gray" edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
-      <View className="px-5 pt-2 pb-2">
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-2xl font-montserrat-bold text-gray-900">Ranking</Text>
-          <TouchableOpacity className="flex-row items-center gap-1 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">
-            <Text className="text-xs font-montserrat-bold text-gray-700">Mensual</Text>
-            <ChevronDown size={14} color="#9ca3af" />
-          </TouchableOpacity>
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Ranking</Text>
+          <View style={styles.monthBadge}>
+            <Text style={styles.monthBadgeText}>
+              {new Date().toLocaleDateString("es-MX", { month: "long" })}
+            </Text>
+          </View>
         </View>
 
-        {/* Category Selector */}
-        <View className="flex-row p-1 bg-gray-200 rounded-xl mb-2">
-          {categories.map((category) => (
+        {/* Category Tabs */}
+        <View style={styles.tabsContainer}>
+          {[
+            { key: "total", label: "Total" },
+            { key: "asistencia", label: "Asistencia" },
+            { key: "wods", label: "WODs" },
+          ].map((tab) => (
             <TouchableOpacity
-              key={category}
-              onPress={() => setSelectedCategory(category)}
-              className={`flex-1 py-2 rounded-lg ${
-                selectedCategory === category ? 'bg-white shadow-sm' : ''
-              }`}
+              key={tab.key}
+              style={[
+                styles.tab,
+                selectedCategory === tab.key && styles.tabActive,
+              ]}
+              onPress={() => setSelectedCategory(tab.key as Category)}
             >
               <Text
-                className={`text-xs font-montserrat-bold text-center ${
-                  selectedCategory === category ? 'text-gray-900' : 'text-gray-500'
-                }`}
+                style={[
+                  styles.tabText,
+                  selectedCategory === tab.key && styles.tabTextActive,
+                ]}
               >
-                {category}
+                {tab.label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
-      {/* Scrollable Content */}
       <ScrollView
-        className="flex-1"
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {/* Podium */}
-        <View className="flex-row items-end justify-center gap-3 mt-5 mb-8 px-5">
-          {podiumData.map((user) => (
-            <View key={user.place} className="items-center relative">
-              {/* Crown for 1st place */}
-              {user.place === 1 && (
-                <Crown size={24} color="#F59E0B" className="absolute -top-8" style={{ marginBottom: 8 }} />
+        {podiumOrder.length > 0 && (
+          <View style={styles.podiumContainer}>
+            {podiumOrder.map((podiumUser, index) => {
+              const isFirst = podiumUser.rank === 1;
+              const isSecond = podiumUser.rank === 2;
+              const isThird = podiumUser.rank === 3;
+
+              return (
+                <View
+                  key={podiumUser.uid}
+                  style={[styles.podiumItem, isFirst && styles.podiumFirst]}
+                >
+                  {/* Crown for 1st */}
+                  {isFirst && (
+                    <Crown size={28} color="#F59E0B" style={styles.crown} />
+                  )}
+
+                  {/* Avatar */}
+                  <View
+                    style={[
+                      styles.avatarContainer,
+                      isFirst && styles.avatarFirst,
+                      isSecond && styles.avatarSecond,
+                      isThird && styles.avatarThird,
+                    ]}
+                  >
+                    {podiumUser.photoURL ? (
+                      <Image
+                        source={{ uri: podiumUser.photoURL }}
+                        style={[
+                          styles.avatar,
+                          isFirst && styles.avatarImageFirst,
+                        ]}
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.avatarPlaceholder,
+                          isFirst && styles.avatarImageFirst,
+                        ]}
+                      >
+                        <Text style={styles.avatarInitials}>
+                          {podiumUser.displayName.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Rank Badge */}
+                  <View
+                    style={[
+                      styles.rankBadge,
+                      isFirst && styles.rankBadgeGold,
+                      isSecond && styles.rankBadgeSilver,
+                      isThird && styles.rankBadgeBronze,
+                    ]}
+                  >
+                    <Text style={styles.rankBadgeText}>{podiumUser.rank}</Text>
+                  </View>
+
+                  {/* Podium Block */}
+                  <View
+                    style={[
+                      styles.podiumBlock,
+                      isFirst && styles.podiumBlockFirst,
+                      isSecond && styles.podiumBlockSecond,
+                      isThird && styles.podiumBlockThird,
+                    ]}
+                  >
+                    <Text style={styles.podiumName} numberOfLines={1}>
+                      {podiumUser.displayName.split(" ")[0]}
+                    </Text>
+                    <View
+                      style={[
+                        styles.podiumScoreBadge,
+                        isFirst && styles.podiumScoreBadgeGold,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.podiumScoreText,
+                          isFirst && styles.podiumScoreTextGold,
+                        ]}
+                      >
+                        {getScoreLabel(podiumUser)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Ranking List */}
+        <View style={styles.listContainer}>
+          {restOfRanking.map((rankedUser) => (
+            <View
+              key={rankedUser.uid}
+              style={[
+                styles.rankingItem,
+                rankedUser.uid === user?.uid && styles.rankingItemHighlight,
+              ]}
+            >
+              <Text style={styles.rankNumber}>{rankedUser.rank}</Text>
+
+              {rankedUser.photoURL ? (
+                <Image
+                  source={{ uri: rankedUser.photoURL }}
+                  style={styles.listAvatar}
+                />
+              ) : (
+                <View style={styles.listAvatarPlaceholder}>
+                  <Text style={styles.listAvatarInitials}>
+                    {rankedUser.displayName.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
               )}
-              
-              {/* Avatar */}
-              <Image
-                source={{ uri: user.avatar }}
-                className={`rounded-full border-[3px] mb-[-10px] z-10 ${
-                  user.place === 1 ? 'w-20 h-20' : 'w-[60px] h-[60px]'
-                }`}
-                style={{ borderColor: getPodiumBorderColor(user.place) }}
-              />
-              
-              {/* Rank Badge */}
-              <View
-                className="absolute z-20 w-6 h-6 rounded-full items-center justify-center border-2 border-white"
-                style={{
-                  backgroundColor: getBadgeColor(user.place),
-                  bottom: user.place === 1 ? 130 : user.place === 2 ? 90 : 70,
-                }}
-              >
-                <Text className="text-xs font-montserrat-bold text-white">{user.place}</Text>
+
+              <View style={styles.userInfo}>
+                <Text style={styles.userName}>{rankedUser.displayName}</Text>
+                <Text style={styles.userLevel}>Nivel: {rankedUser.level}</Text>
               </View>
 
-              {/* Podium Block */}
-              <View
-                className={`rounded-t-xl items-center pt-4 ${
-                  user.place === 1 ? 'w-[100px] bg-yellow-50' : 'w-20 bg-gradient-to-b from-white to-gray-50'
-                }`}
-                style={{
-                  height: getPodiumHeight(user.place),
-                  backgroundColor: user.place === 1 ? '#FEF3C7' : '#f9fafb',
-                }}
-              >
-                <Text className="font-montserrat-bold text-gray-900 text-sm">{user.name}</Text>
-                {user.place === 1 ? (
-                  <View className="bg-yellow-100 px-2 py-0.5 rounded-full mt-1">
-                    <Text className="text-xs font-montserrat-bold text-yellow-600">{user.points} clases</Text>
-                  </View>
-                ) : (
-                  <Text className="text-xs text-gray-500 font-montserrat-medium">{user.points} clases</Text>
-                )}
+              <View style={styles.scoreContainer}>
+                <Text style={styles.scoreValue}>
+                  {selectedCategory === "asistencia"
+                    ? rankedUser.checkIns
+                    : selectedCategory === "wods"
+                    ? rankedUser.wods
+                    : rankedUser.points}
+                </Text>
+                <Text style={styles.scoreLabel}>
+                  {selectedCategory === "asistencia"
+                    ? "clases"
+                    : selectedCategory === "wods"
+                    ? "WODs"
+                    : "pts"}
+                </Text>
               </View>
             </View>
           ))}
-        </View>
 
-        {/* Ranking List */}
-        <View className="px-5 space-y-3">
-          {rankingList.map((user) => (
-            <RankingItem
-              key={user.rank}
-              rank={user.rank}
-              name={user.name}
-              level={user.level}
-              points={user.points}
-              avatarUrl={user.avatarUrl}
-              initials={user.initials}
-            />
-          ))}
+          {ranking.length === 0 && (
+            <View style={styles.emptyContainer}>
+              <Trophy size={48} color="#9ca3af" />
+              <Text style={styles.emptyTitle}>Sin datos aún</Text>
+              <Text style={styles.emptySubtitle}>
+                Asiste a clases y registra WODs para aparecer en el ranking
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
-      {/* My Position - Floating Footer */}
-      <View className="absolute bottom-24 left-5 right-5 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between shadow-xl">
-        <View className="flex-row items-center gap-3">
-          <Text className="font-montserrat-bold text-white/80 w-6 text-center">12</Text>
-          <Image
-            source={{ uri: 'https://i.pravatar.cc/150?img=11' }}
-            className="w-10 h-10 rounded-full border-2 border-avc-red"
-          />
-          <View>
-            <Text className="font-montserrat-bold text-white text-sm">Tú (Juan)</Text>
-            <Text className="text-[10px] text-gray-400 font-montserrat">¡Estás a 3 pts del Top 10!</Text>
+      {/* My Position Footer */}
+      {myRanking && (
+        <View style={styles.footer}>
+          <View style={styles.footerContent}>
+            <View style={styles.footerLeft}>
+              <Text style={styles.footerRank}>{myRanking.rank}</Text>
+              {userData?.photoURL ? (
+                <Image
+                  source={{ uri: userData.photoURL }}
+                  style={styles.footerAvatar}
+                />
+              ) : (
+                <View style={styles.footerAvatarPlaceholder}>
+                  <Text style={styles.footerAvatarInitials}>
+                    {userData?.displayName?.charAt(0).toUpperCase() || "T"}
+                  </Text>
+                </View>
+              )}
+              <View>
+                <Text style={styles.footerName}>
+                  Tú ({userData?.displayName?.split(" ")[0] || "Usuario"})
+                </Text>
+                <Text style={styles.footerMotivation}>
+                  {getMotivationalMessage()}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.footerRight}>
+              <Text style={styles.footerPoints}>{myRanking.points}</Text>
+              <Text style={styles.footerPointsLabel}>Pts</Text>
+            </View>
           </View>
         </View>
-        <View className="items-end">
-          <Text className="font-montserrat-bold text-white text-lg">12</Text>
-          <Text className="text-[10px] text-gray-400 font-montserrat -mt-1">Pts</Text>
-        </View>
-      </View>
+      )}
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#6b7280",
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+    backgroundColor: "#ffffff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#111827",
+  },
+  monthBadge: {
+    backgroundColor: "#fef2f2",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  monthBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#dc2626",
+    textTransform: "capitalize",
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  tabActive: {
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  tabTextActive: {
+    color: "#111827",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 160,
+  },
+  podiumContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "flex-end",
+    paddingHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 32,
+    gap: 12,
+  },
+  podiumItem: {
+    alignItems: "center",
+  },
+  podiumFirst: {
+    marginBottom: 0,
+  },
+  crown: {
+    marginBottom: 8,
+  },
+  avatarContainer: {
+    marginBottom: -15,
+    zIndex: 10,
+  },
+  avatarFirst: {
+    borderWidth: 4,
+    borderColor: "#FCD34D",
+    borderRadius: 44,
+  },
+  avatarSecond: {
+    borderWidth: 3,
+    borderColor: "#E5E7EB",
+    borderRadius: 36,
+  },
+  avatarThird: {
+    borderWidth: 3,
+    borderColor: "#FDBA74",
+    borderRadius: 32,
+  },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+  },
+  avatarImageFirst: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  avatarPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#dc2626",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarInitials: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  rankBadge: {
+    position: "absolute",
+    bottom: 55,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#ffffff",
+    zIndex: 20,
+  },
+  rankBadgeGold: {
+    backgroundColor: "#F59E0B",
+    bottom: 75,
+  },
+  rankBadgeSilver: {
+    backgroundColor: "#9CA3AF",
+  },
+  rankBadgeBronze: {
+    backgroundColor: "#D97706",
+  },
+  rankBadgeText: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  podiumBlock: {
+    width: 80,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    alignItems: "center",
+    paddingTop: 20,
+    paddingBottom: 12,
+    backgroundColor: "#f9fafb",
+  },
+  podiumBlockFirst: {
+    width: 100,
+    height: 140,
+    backgroundColor: "#FEF3C7",
+  },
+  podiumBlockSecond: {
+    height: 100,
+  },
+  podiumBlockThird: {
+    height: 80,
+  },
+  podiumName: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  podiumScoreBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: "#f3f4f6",
+  },
+  podiumScoreBadgeGold: {
+    backgroundColor: "#FEF08A",
+  },
+  podiumScoreText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  podiumScoreTextGold: {
+    color: "#B45309",
+  },
+  listContainer: {
+    paddingHorizontal: 20,
+  },
+  rankingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  rankingItemHighlight: {
+    borderWidth: 2,
+    borderColor: "#dc2626",
+  },
+  rankNumber: {
+    width: 24,
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#6b7280",
+    textAlign: "center",
+  },
+  listAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginLeft: 12,
+  },
+  listAvatarPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#6b7280",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 12,
+  },
+  listAvatarInitials: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  userInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  userName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 2,
+  },
+  userLevel: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  scoreContainer: {
+    alignItems: "flex-end",
+  },
+  scoreValue: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#111827",
+  },
+  scoreLabel: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: -2,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111827",
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+    marginTop: 8,
+    paddingHorizontal: 40,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 90,
+    left: 20,
+    right: 20,
+    backgroundColor: "#111827",
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  footerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+  },
+  footerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  footerRank: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "rgba(255,255,255,0.7)",
+    width: 28,
+    textAlign: "center",
+  },
+  footerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: "#dc2626",
+    marginHorizontal: 12,
+  },
+  footerAvatarPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#dc2626",
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 12,
+  },
+  footerAvatarInitials: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  footerName: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  footerMotivation: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: 2,
+  },
+  footerRight: {
+    alignItems: "flex-end",
+  },
+  footerPoints: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  footerPointsLabel: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: -4,
+  },
+});

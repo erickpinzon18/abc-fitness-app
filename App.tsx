@@ -6,6 +6,9 @@ import VerifyEmailScreen from "@/screens/auth/VerifyEmailScreen";
 import WelcomeScreen from "@/screens/auth/WelcomeScreen";
 import BookingScreen from "@/screens/booking/BookingScreen";
 import HomeScreen from "@/screens/home/HomeScreen";
+import PlanesScreen from "@/screens/planes/PlanesScreen";
+import DatosPersonalesScreen from "@/screens/profile/DatosPersonalesScreen";
+import HistorialScreen from "@/screens/profile/HistorialScreen";
 import ProfileScreen from "@/screens/profile/ProfileScreen";
 import RankingScreen from "@/screens/ranking/RankingScreen";
 import ActiveTimerScreen from "@/screens/timer/ActiveTimerScreen";
@@ -51,6 +54,9 @@ type RootStackParamList = {
   ActiveTimer: { type: string };
   WOD: undefined;
   ActionsModal: undefined;
+  Planes: undefined;
+  DatosPersonales: undefined;
+  Historial: undefined;
 };
 
 // Create navigators
@@ -164,6 +170,21 @@ function RootNavigator() {
           presentation: "transparentModal",
           animation: "fade",
         }}
+      />
+      <RootStack.Screen
+        name="Planes"
+        component={PlanesScreen}
+        options={{ animation: "slide_from_right" }}
+      />
+      <RootStack.Screen
+        name="DatosPersonales"
+        component={DatosPersonalesScreen}
+        options={{ animation: "slide_from_right" }}
+      />
+      <RootStack.Screen
+        name="Historial"
+        component={HistorialScreen}
+        options={{ animation: "slide_from_right" }}
       />
     </RootStack.Navigator>
   );

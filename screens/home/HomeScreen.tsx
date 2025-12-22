@@ -1,4 +1,5 @@
 import { ConfirmModal, ModalType } from "@/components/ConfirmModal";
+import { StreakCelebration } from "@/components/StreakCelebration";
 import { useAuth } from "@/context/AuthContext";
 import {
   cancelarReservacion,
@@ -19,7 +20,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Timestamp } from "firebase/firestore";
 import { ChevronRight, Clock, Dumbbell, Zap } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -147,6 +148,8 @@ export default function DashboardScreen({ navigation }: Props) {
   const [streakAnimating, setStreakAnimating] = useState(false);
   const [wodHoy, setWodHoy] = useState<WOD | null>(null);
   const [timeStatus, setTimeStatus] = useState<ClassTimeStatus | null>(null);
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const previousStreakRef = useRef<number | null>(null);
 
   // Modal state
   const [modalVisible, setModalVisible] = useState(false);
@@ -196,7 +199,18 @@ export default function DashboardScreen({ navigation }: Props) {
       setDiasEntrenamiento(dias);
 
       const resultado = await verificarRachaAlIniciar(user.uid);
-      setStreak(resultado.currentStreak);
+      const newStreak = resultado.currentStreak;
+
+      // Detectar si la racha incrementó
+      if (
+        previousStreakRef.current !== null &&
+        newStreak > previousStreakRef.current
+      ) {
+        setShowStreakCelebration(true);
+      }
+
+      previousStreakRef.current = newStreak;
+      setStreak(newStreak);
     } catch (error) {
       console.error("Error verificando racha:", error);
     }
@@ -581,6 +595,13 @@ export default function DashboardScreen({ navigation }: Props) {
             : handleModalConfirm
         }
         onCancel={() => setModalVisible(false)}
+      />
+
+      {/* Streak Celebration Animation */}
+      <StreakCelebration
+        visible={showStreakCelebration}
+        streakCount={streak}
+        onComplete={() => setShowStreakCelebration(false)}
       />
     </SafeAreaView>
   );

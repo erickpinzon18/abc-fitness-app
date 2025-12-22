@@ -25,7 +25,8 @@ export type ModalType =
   | "checkin"
   | "success"
   | "error"
-  | "info";
+  | "info"
+  | "confirm";
 
 interface ClassInfo {
   nombre: string;
@@ -137,6 +138,15 @@ export function ConfirmModal({
       confirmText: "Entendido",
       buttonColor: "#d97706",
     },
+    confirm: {
+      icon: AlertTriangle,
+      iconColor: "#2563eb",
+      bgColor: "#dbeafe",
+      title: "Confirmar",
+      message: "",
+      confirmText: "Confirmar",
+      buttonColor: "#2563eb",
+    },
   };
 
   const currentConfig = configs[type];
@@ -145,8 +155,9 @@ export function ConfirmModal({
   const displayMessage = message || currentConfig.message;
   const displayConfirmText = confirmText || currentConfig.confirmText;
 
-  const showTwoButtons = !isSuccess && !isError && !isInfo;
-  const showSingleButton = isSuccess || isError || isInfo;
+  const isConfirm = type === "confirm";
+  const showTwoButtons = (!isSuccess && !isError && !isInfo) || isConfirm;
+  const showSingleButton = (isSuccess || isError || isInfo) && !isConfirm;
 
   // Animación de entrada
   useEffect(() => {
