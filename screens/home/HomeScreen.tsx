@@ -15,7 +15,10 @@ import {
   verificarRachaAlIniciar,
 } from "@/lib/streakService";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Timestamp } from "firebase/firestore";
+import { ChevronRight, Clock, Dumbbell, Zap } from "lucide-react-native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -132,6 +135,7 @@ const getClassTimeStatus = (
 
 export default function DashboardScreen({ navigation }: Props) {
   const { userData, user, refreshUserData } = useAuth();
+  const rootNavigation = useNavigation<NativeStackNavigationProp<any>>();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [proximaClase, setProximaClase] = useState<
@@ -531,11 +535,37 @@ export default function DashboardScreen({ navigation }: Props) {
         {/* WOD Preview */}
         {wodHoy && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>WOD de Hoy</Text>
-            <View style={styles.wodCard}>
-              <Text style={styles.wodName}>{wodHoy.titulo}</Text>
-              <Text style={styles.wodType}>{wodHoy.modalidad}</Text>
+            <View style={styles.sectionHeader}>
+              <Dumbbell size={20} color="#dc2626" />
+              <Text style={styles.sectionTitleWithIcon}>WOD de Hoy</Text>
             </View>
+            <TouchableOpacity
+              style={styles.wodCard}
+              onPress={() => rootNavigation.navigate("WOD")}
+              activeOpacity={0.8}
+            >
+              <View style={styles.wodCardContent}>
+                <View style={styles.wodInfo}>
+                  <Text style={styles.wodName}>{wodHoy.titulo}</Text>
+                  <View style={styles.wodMetaRow}>
+                    <Clock size={14} color="#6b7280" />
+                    <Text style={styles.wodType}>{wodHoy.modalidad}</Text>
+                    {wodHoy.timeCap && (
+                      <Text style={styles.wodTimeCap}>
+                        • {wodHoy.timeCap} min
+                      </Text>
+                    )}
+                  </View>
+                </View>
+                <View style={styles.wodArrow}>
+                  <ChevronRight size={24} color="#dc2626" />
+                </View>
+              </View>
+              <View style={styles.wodHintRow}>
+                <Zap size={14} color="#9ca3af" />
+                <Text style={styles.wodHint}>Registra tu resultado</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -721,6 +751,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#dc2626",
     fontWeight: "500",
+  },
+  wodCardContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  wodArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#fef2f2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  wodArrowText: {
+    fontSize: 18,
+    color: "#dc2626",
+  },
+  sectionTitleWithIcon: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111827",
+    marginLeft: 8,
+  },
+  wodInfo: {
+    flex: 1,
+  },
+  wodMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+  wodTimeCap: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginLeft: 4,
+  },
+  wodHintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  wodHint: {
+    fontSize: 12,
+    color: "#9ca3af",
   },
   classButtons: {
     flexDirection: "row",

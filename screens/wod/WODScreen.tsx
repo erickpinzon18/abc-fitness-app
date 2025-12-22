@@ -1,6 +1,6 @@
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { useAuth } from "@/context/AuthContext";
-import { getWODHoy, WOD } from "@/lib/classService";
+import { getWODHoy, registrarResultadoWOD, WOD } from "@/lib/classService";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
@@ -17,6 +17,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -25,8 +26,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type RootNavigation = NativeStackNavigationProp<any>;
-
-type ResultType = "time" | "rounds" | "reps" | "weight";
+type ResultType = "time" | "rounds" | "reps";
 
 interface ResultInput {
   minutes?: string;
@@ -36,9 +36,9 @@ interface ResultInput {
   weight?: string;
 }
 
-export default function RegistrarWODScreen() {
+export default function WODScreen() {
   const navigation = useNavigation<RootNavigation>();
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const [wod, setWod] = useState<WOD | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -91,8 +91,6 @@ export default function RegistrarWODScreen() {
         }`;
       case "reps":
         return `${result.reps || 0} reps`;
-      case "weight":
-        return `${result.weight || 0} lbs`;
       default:
         return "";
     }
@@ -100,33 +98,40 @@ export default function RegistrarWODScreen() {
 
   // Guardar resultado
   const handleSave = async () => {
-    if (!wod || !user?.uid) return;
+    if (!wod || !user) return;
 
     setSaving(true);
-
     try {
-      // TODO: Guardar en Firebase
-      // await guardarResultadoWOD(wod.id, user.uid, {
-      //   resultType,
-      //   result,
-      //   rxLevel,
-      //   notes,
-      // });
+      const resultData = {
+        tiempo: resultType === "time" ? getFormattedResult() : undefined,
+        rondas:
+          resultType === "rounds" ? parseInt(result.rounds || "0") : undefined,
+        reps: result.reps ? parseInt(result.reps) : undefined,
+        peso: rxLevel === "rx+" ? result.weight : undefined,
+        rx: rxLevel === "rx" || rxLevel === "rx+",
+        notas: notes || undefined,
+      };
 
-      // Simular guardado
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setModalType("success");
-      setModalMessage(
-        `¡Resultado registrado!\n${getFormattedResult()} (${rxLevel.toUpperCase()})`
+      const response = await registrarResultadoWOD(
+        wod.id,
+        user.uid,
+        userData?.displayName || "Atleta",
+        resultData
       );
-      setModalVisible(true);
+
+      if (response.success) {
+        setModalType("success");
+        setModalMessage("¡Tu resultado ha sido guardado! 💪");
+      } else {
+        setModalType("error");
+        setModalMessage(response.error || "Error al guardar");
+      }
     } catch (error) {
       setModalType("error");
-      setModalMessage("No se pudo guardar el resultado");
-      setModalVisible(true);
+      setModalMessage("Error al guardar el resultado");
     } finally {
       setSaving(false);
+      setModalVisible(true);
     }
   };
 
@@ -139,44 +144,41 @@ export default function RegistrarWODScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#dc2626" />
-        <Text className="text-white font-montserrat-medium mt-4">
-          Cargando WOD...
-        </Text>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#dc2626" />
+          <Text style={styles.loadingText}>Cargando WOD...</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
   if (!wod) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-900">
-        <View className="flex-row items-center px-5 py-4">
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            className="p-2 -ml-2"
+            style={styles.backButton}
           >
-            <ArrowLeft size={24} color="#ffffff" />
+            <ArrowLeft size={24} color="#111827" />
           </TouchableOpacity>
-          <Text className="text-xl font-montserrat-bold text-white ml-2">
-            Registrar WOD
-          </Text>
+          <Text style={styles.headerTitle}>WOD de Hoy</Text>
+          <View style={{ width: 40 }} />
         </View>
 
-        <View className="flex-1 items-center justify-center px-8">
-          <Dumbbell size={64} color="#4b5563" />
-          <Text className="text-xl font-montserrat-bold text-white mt-4 text-center">
-            No hay WOD programado
-          </Text>
-          <Text className="text-gray-400 font-montserrat text-center mt-2">
+        <View style={styles.emptyContainer}>
+          <Dumbbell size={64} color="#9ca3af" />
+          <Text style={styles.emptyTitle}>No hay WOD programado</Text>
+          <Text style={styles.emptySubtitle}>
             No hay un WOD programado para hoy. Vuelve más tarde o contacta a tu
             coach.
           </Text>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            className="mt-8 bg-avc-red px-8 py-4 rounded-xl"
+            style={styles.backButtonLarge}
           >
-            <Text className="text-white font-montserrat-bold">Volver</Text>
+            <Text style={styles.backButtonText}>Volver</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -184,62 +186,51 @@ export default function RegistrarWODScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900" edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
         {/* Header */}
-        <View className="flex-row items-center justify-between px-5 py-4">
-          <View className="flex-row items-center">
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              className="p-2 -ml-2"
-            >
-              <ArrowLeft size={24} color="#ffffff" />
-            </TouchableOpacity>
-            <Text className="text-xl font-montserrat-bold text-white ml-2">
-              Registrar WOD
-            </Text>
-          </View>
-          <View className="bg-avc-red/20 px-3 py-1 rounded-full">
-            <Text className="text-avc-red font-montserrat-bold text-xs">
-              HOY
-            </Text>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <ArrowLeft size={24} color="#111827" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>WOD de Hoy</Text>
+          <View style={styles.todayBadge}>
+            <Text style={styles.todayBadgeText}>HOY</Text>
           </View>
         </View>
 
         <ScrollView
-          className="flex-1 px-5"
+          style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
           {/* WOD Info Card */}
-          <View className="bg-gray-800 rounded-2xl p-5 mb-6">
-            <View className="flex-row justify-between items-start mb-4">
-              <View className="flex-1">
-                <View className="bg-white/10 px-2 py-1 rounded self-start mb-2">
-                  <Text className="text-xs font-montserrat-bold text-white">
-                    {wod.modalidad.toUpperCase()}
-                    {wod.timeCap ? ` ${wod.timeCap}'` : ""}
-                  </Text>
-                </View>
-                <Text className="text-2xl font-montserrat-bold text-white">
-                  "{wod.titulo}"
+          <View style={styles.wodCard}>
+            <View style={styles.wodHeader}>
+              <View style={styles.modalidadBadge}>
+                <Text style={styles.modalidadText}>
+                  {wod.modalidad.toUpperCase()}
+                  {wod.timeCap ? ` • ${wod.timeCap} MIN` : ""}
                 </Text>
               </View>
-              <Dumbbell size={28} color="#6b7280" />
+              <Dumbbell size={28} color="#dc2626" />
             </View>
 
+            <Text style={styles.wodTitle}>"{wod.titulo}"</Text>
+
             {/* Ejercicios */}
-            <View className="space-y-2">
+            <View style={styles.ejerciciosList}>
               {wod.ejercicios.map((ejercicio, index) => (
-                <View key={index} className="flex-row items-center gap-3">
-                  <View className="w-6 h-6 rounded-full bg-avc-red items-center justify-center">
-                    <Text className="text-[10px] font-montserrat-bold text-white">
-                      {index + 1}
-                    </Text>
+                <View key={index} style={styles.ejercicioItem}>
+                  <View style={styles.ejercicioNumber}>
+                    <Text style={styles.ejercicioNumberText}>{index + 1}</Text>
                   </View>
-                  <Text className="text-gray-300 text-sm font-montserrat">
+                  <Text style={styles.ejercicioText}>
                     {ejercicio.cantidad} {ejercicio.nombre}
                   </Text>
                 </View>
@@ -247,31 +238,29 @@ export default function RegistrarWODScreen() {
             </View>
 
             {wod.notas && (
-              <View className="mt-3 bg-white/5 rounded-lg p-3">
-                <Text className="text-xs text-gray-400 font-montserrat">
-                  {wod.notas}
-                </Text>
+              <View style={styles.notasCard}>
+                <Text style={styles.notasText}>{wod.notas}</Text>
               </View>
             )}
           </View>
 
           {/* Nivel RX */}
-          <Text className="text-white font-montserrat-bold text-lg mb-3">
-            Nivel
-          </Text>
-          <View className="flex-row gap-3 mb-6">
+          <Text style={styles.sectionTitle}>Nivel</Text>
+          <View style={styles.rxRow}>
             {(["scaled", "rx", "rx+"] as const).map((level) => (
               <TouchableOpacity
                 key={level}
                 onPress={() => setRxLevel(level)}
-                className={`flex-1 py-3 rounded-xl items-center ${
-                  rxLevel === level ? "bg-avc-red" : "bg-gray-800"
-                }`}
+                style={[
+                  styles.rxButton,
+                  rxLevel === level && styles.rxButtonActive,
+                ]}
               >
                 <Text
-                  className={`font-montserrat-bold ${
-                    rxLevel === level ? "text-white" : "text-gray-400"
-                  }`}
+                  style={[
+                    styles.rxButtonText,
+                    rxLevel === level && styles.rxButtonTextActive,
+                  ]}
                 >
                   {level.toUpperCase()}
                 </Text>
@@ -280,32 +269,30 @@ export default function RegistrarWODScreen() {
           </View>
 
           {/* Tipo de Resultado */}
-          <Text className="text-white font-montserrat-bold text-lg mb-3">
-            Tu Resultado
-          </Text>
-          <View className="flex-row gap-2 mb-4">
+          <Text style={styles.sectionTitle}>Tu Resultado</Text>
+          <View style={styles.resultTypeRow}>
             {[
-              { type: "time" as ResultType, label: "Tiempo", icon: Clock },
-              { type: "rounds" as ResultType, label: "Rounds", icon: Trophy },
-              { type: "reps" as ResultType, label: "Reps", icon: Flame },
+              { type: "time" as ResultType, label: "Tiempo", Icon: Clock },
+              { type: "rounds" as ResultType, label: "Rounds", Icon: Trophy },
+              { type: "reps" as ResultType, label: "Reps", Icon: Flame },
             ].map((item) => (
               <TouchableOpacity
                 key={item.type}
                 onPress={() => setResultType(item.type)}
-                className={`flex-1 py-3 rounded-xl flex-row items-center justify-center gap-2 ${
-                  resultType === item.type
-                    ? "bg-gray-700 border border-avc-red"
-                    : "bg-gray-800"
-                }`}
+                style={[
+                  styles.resultTypeButton,
+                  resultType === item.type && styles.resultTypeButtonActive,
+                ]}
               >
-                <item.icon
-                  size={16}
+                <item.Icon
+                  size={18}
                   color={resultType === item.type ? "#dc2626" : "#9ca3af"}
                 />
                 <Text
-                  className={`font-montserrat-semibold text-xs ${
-                    resultType === item.type ? "text-white" : "text-gray-400"
-                  }`}
+                  style={[
+                    styles.resultTypeText,
+                    resultType === item.type && styles.resultTypeTextActive,
+                  ]}
                 >
                   {item.label}
                 </Text>
@@ -314,166 +301,491 @@ export default function RegistrarWODScreen() {
           </View>
 
           {/* Input de Resultado */}
-          <View className="bg-gray-800 rounded-2xl p-5 mb-6">
+          <View style={styles.inputCard}>
             {resultType === "time" && (
-              <View className="flex-row items-center justify-center gap-4">
-                <View className="items-center">
+              <View style={styles.timeInputRow}>
+                <View style={styles.timeInputGroup}>
                   <TextInput
+                    style={styles.timeInput}
+                    placeholder="00"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="number-pad"
+                    maxLength={2}
                     value={result.minutes}
                     onChangeText={(text) =>
-                      setResult({
-                        ...result,
-                        minutes: text.replace(/[^0-9]/g, ""),
-                      })
+                      setResult({ ...result, minutes: text })
                     }
+                  />
+                  <Text style={styles.timeLabel}>min</Text>
+                </View>
+                <Text style={styles.timeSeparator}>:</Text>
+                <View style={styles.timeInputGroup}>
+                  <TextInput
+                    style={styles.timeInput}
                     placeholder="00"
-                    placeholderTextColor="#6b7280"
+                    placeholderTextColor="#9ca3af"
                     keyboardType="number-pad"
                     maxLength={2}
-                    className="text-5xl font-montserrat-bold text-white text-center w-24"
-                  />
-                  <Text className="text-gray-500 font-montserrat text-xs mt-1">
-                    MIN
-                  </Text>
-                </View>
-                <Text className="text-4xl font-montserrat-bold text-gray-500">
-                  :
-                </Text>
-                <View className="items-center">
-                  <TextInput
                     value={result.seconds}
                     onChangeText={(text) =>
-                      setResult({
-                        ...result,
-                        seconds: text.replace(/[^0-9]/g, "").slice(0, 2),
-                      })
+                      setResult({ ...result, seconds: text })
                     }
-                    placeholder="00"
-                    placeholderTextColor="#6b7280"
-                    keyboardType="number-pad"
-                    maxLength={2}
-                    className="text-5xl font-montserrat-bold text-white text-center w-24"
                   />
-                  <Text className="text-gray-500 font-montserrat text-xs mt-1">
-                    SEG
-                  </Text>
+                  <Text style={styles.timeLabel}>seg</Text>
                 </View>
               </View>
             )}
 
             {resultType === "rounds" && (
-              <View className="flex-row items-center justify-center gap-6">
-                <View className="items-center">
+              <View style={styles.roundsInputRow}>
+                <View style={styles.roundsInputGroup}>
                   <TextInput
+                    style={styles.roundsInput}
+                    placeholder="0"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="number-pad"
                     value={result.rounds}
                     onChangeText={(text) =>
-                      setResult({
-                        ...result,
-                        rounds: text.replace(/[^0-9]/g, ""),
-                      })
+                      setResult({ ...result, rounds: text })
                     }
-                    placeholder="0"
-                    placeholderTextColor="#6b7280"
-                    keyboardType="number-pad"
-                    maxLength={3}
-                    className="text-5xl font-montserrat-bold text-white text-center w-24"
                   />
-                  <Text className="text-gray-500 font-montserrat text-xs mt-1">
-                    ROUNDS
-                  </Text>
+                  <Text style={styles.roundsLabel}>rounds</Text>
                 </View>
-                <Text className="text-2xl font-montserrat-bold text-gray-500">
-                  +
-                </Text>
-                <View className="items-center">
+                <Text style={styles.plusSign}>+</Text>
+                <View style={styles.roundsInputGroup}>
                   <TextInput
+                    style={styles.repsInput}
+                    placeholder="0"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="number-pad"
                     value={result.reps}
                     onChangeText={(text) =>
-                      setResult({
-                        ...result,
-                        reps: text.replace(/[^0-9]/g, ""),
-                      })
+                      setResult({ ...result, reps: text })
                     }
-                    placeholder="0"
-                    placeholderTextColor="#6b7280"
-                    keyboardType="number-pad"
-                    maxLength={3}
-                    className="text-4xl font-montserrat-bold text-white text-center w-20"
                   />
-                  <Text className="text-gray-500 font-montserrat text-xs mt-1">
-                    REPS
-                  </Text>
+                  <Text style={styles.roundsLabel}>reps</Text>
                 </View>
               </View>
             )}
 
             {resultType === "reps" && (
-              <View className="items-center">
+              <View style={styles.repsOnlyRow}>
                 <TextInput
-                  value={result.reps}
-                  onChangeText={(text) =>
-                    setResult({ ...result, reps: text.replace(/[^0-9]/g, "") })
-                  }
+                  style={styles.repsOnlyInput}
                   placeholder="0"
-                  placeholderTextColor="#6b7280"
+                  placeholderTextColor="#9ca3af"
                   keyboardType="number-pad"
-                  maxLength={4}
-                  className="text-6xl font-montserrat-bold text-white text-center w-40"
+                  value={result.reps}
+                  onChangeText={(text) => setResult({ ...result, reps: text })}
                 />
-                <Text className="text-gray-500 font-montserrat text-xs mt-1">
-                  TOTAL REPS
-                </Text>
+                <Text style={styles.repsOnlyLabel}>reps totales</Text>
               </View>
             )}
+
+            {/* Preview del resultado */}
+            <View style={styles.previewRow}>
+              <Check size={18} color="#16a34a" />
+              <Text style={styles.previewText}>{getFormattedResult()}</Text>
+            </View>
           </View>
 
           {/* Notas */}
-          <Text className="text-white font-montserrat-bold text-lg mb-3">
-            Notas (opcional)
-          </Text>
+          <Text style={styles.sectionTitle}>Notas (opcional)</Text>
           <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            placeholder="¿Cómo te sentiste? ¿Modificaste algo?"
-            placeholderTextColor="#6b7280"
+            style={styles.notesInput}
+            placeholder="Añade notas sobre tu WOD..."
+            placeholderTextColor="#9ca3af"
             multiline
             numberOfLines={3}
-            className="bg-gray-800 rounded-2xl p-4 text-white font-montserrat text-sm mb-8"
-            style={{ textAlignVertical: "top", minHeight: 100 }}
+            value={notes}
+            onChangeText={setNotes}
           />
-        </ScrollView>
 
-        {/* Botón Guardar */}
-        <View className="px-5 pb-8 pt-4 bg-gray-900">
+          {/* Botón Guardar */}
           <TouchableOpacity
+            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
             onPress={handleSave}
             disabled={saving}
-            className={`bg-avc-red py-4 rounded-2xl flex-row items-center justify-center gap-2 ${
-              saving ? "opacity-70" : ""
-            }`}
           >
             {saving ? (
               <ActivityIndicator color="#ffffff" />
             ) : (
               <>
                 <Check size={20} color="#ffffff" />
-                <Text className="text-white font-montserrat-bold text-lg">
-                  Guardar Resultado
-                </Text>
+                <Text style={styles.saveButtonText}>Guardar Resultado</Text>
               </>
             )}
           </TouchableOpacity>
-        </View>
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Modal */}
       <ConfirmModal
         visible={modalVisible}
         type={modalType}
-        title={modalType === "success" ? "¡Excelente! 🏆" : "Error"}
+        title={modalType === "success" ? "¡Guardado!" : "Error"}
         message={modalMessage}
+        onConfirm={handleModalClose}
         onCancel={handleModalClose}
       />
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f9fafb",
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#6b7280",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: "#ffffff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111827",
+  },
+  todayBadge: {
+    backgroundColor: "#fee2e2",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  todayBadgeText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#dc2626",
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#111827",
+    marginTop: 20,
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 8,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  backButtonLarge: {
+    marginTop: 32,
+    backgroundColor: "#dc2626",
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  backButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  wodCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  wodHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  modalidadBadge: {
+    backgroundColor: "#dc2626",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  modalidadText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  wodTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#111827",
+    marginBottom: 20,
+  },
+  ejerciciosList: {
+    gap: 12,
+  },
+  ejercicioItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  ejercicioNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#dc2626",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ejercicioNumberText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#ffffff",
+  },
+  ejercicioText: {
+    fontSize: 16,
+    color: "#374151",
+    flex: 1,
+  },
+  notasCard: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: "#fef3c7",
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#f59e0b",
+  },
+  notasText: {
+    fontSize: 14,
+    color: "#92400e",
+    lineHeight: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111827",
+    marginBottom: 12,
+  },
+  rxRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 24,
+  },
+  rxButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+  },
+  rxButtonActive: {
+    backgroundColor: "#dc2626",
+    borderColor: "#dc2626",
+  },
+  rxButtonText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#6b7280",
+  },
+  rxButtonTextActive: {
+    color: "#ffffff",
+  },
+  resultTypeRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 16,
+  },
+  resultTypeButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+  },
+  resultTypeButtonActive: {
+    borderColor: "#dc2626",
+    backgroundColor: "#fef2f2",
+  },
+  resultTypeText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  resultTypeTextActive: {
+    color: "#dc2626",
+  },
+  inputCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 24,
+    alignItems: "center",
+  },
+  timeInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  timeInputGroup: {
+    alignItems: "center",
+  },
+  timeInput: {
+    width: 80,
+    height: 70,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#111827",
+    textAlign: "center",
+  },
+  timeLabel: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  timeSeparator: {
+    fontSize: 40,
+    fontWeight: "bold",
+    color: "#111827",
+    marginBottom: 20,
+  },
+  roundsInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  roundsInputGroup: {
+    alignItems: "center",
+  },
+  roundsInput: {
+    width: 80,
+    height: 70,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#111827",
+    textAlign: "center",
+  },
+  repsInput: {
+    width: 60,
+    height: 60,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#111827",
+    textAlign: "center",
+  },
+  roundsLabel: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  plusSign: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#9ca3af",
+    marginBottom: 20,
+  },
+  repsOnlyRow: {
+    alignItems: "center",
+  },
+  repsOnlyInput: {
+    width: 120,
+    height: 80,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 12,
+    fontSize: 40,
+    fontWeight: "bold",
+    color: "#111827",
+    textAlign: "center",
+  },
+  repsOnlyLabel: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  previewRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  previewText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#16a34a",
+  },
+  notesInput: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 14,
+    color: "#111827",
+    minHeight: 80,
+    textAlignVertical: "top",
+    marginBottom: 24,
+  },
+  saveButton: {
+    flexDirection: "row",
+    backgroundColor: "#dc2626",
+    paddingVertical: 18,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    shadowColor: "#dc2626",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+});
