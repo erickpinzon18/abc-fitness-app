@@ -91,7 +91,7 @@ export default function ActionsModal() {
           <TouchableOpacity
             onPress={() => {
               navigation.goBack();
-              console.log("Open Gym");
+              // console.log("Open Gym");
             }}
             className="mt-4 w-full bg-gray-900 py-4 rounded-2xl items-center"
             activeOpacity={0.8}

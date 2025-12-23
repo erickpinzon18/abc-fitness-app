@@ -53,13 +53,13 @@ export async function getUserAttendanceHistory(
     const q = query(reservationsRef, orderBy("fecha", "desc"));
 
     const snapshot = await getDocs(q);
-    console.log("📋 Reservations found:", snapshot.docs.length);
+    // console.log("📋 Reservations found:", snapshot.docs.length);
 
     const records: AttendanceRecord[] = [];
 
     for (const docSnap of snapshot.docs) {
       const data = docSnap.data();
-      console.log("📝 Reservation data:", data);
+      // console.log("📝 Reservation data:", data);
 
       // Usar el campo claseNombre directamente
       const claseName = data.claseNombre || data.className || "Clase";
@@ -81,7 +81,7 @@ export async function getUserAttendanceHistory(
       });
     }
 
-    console.log("📊 Processed records:", records.length);
+    // console.log("📊 Processed records:", records.length);
     return limit ? records.slice(0, limit) : records;
   } catch (error) {
     console.error("Error fetching attendance history:", error);

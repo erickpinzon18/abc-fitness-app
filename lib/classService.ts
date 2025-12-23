@@ -187,13 +187,13 @@ export async function getClasesPorFecha(fecha: Date): Promise<Clase[]> {
   const endOfDay = new Date(fecha);
   endOfDay.setHours(23, 59, 59, 999);
 
-  console.log("🔍 Buscando clases para fecha:", {
-    fechaInput: fecha.toISOString(),
-    startOfDay: startOfDay.toISOString(),
-    endOfDay: endOfDay.toISOString(),
-    startTimestamp: Timestamp.fromDate(startOfDay).toDate().toISOString(),
-    endTimestamp: Timestamp.fromDate(endOfDay).toDate().toISOString(),
-  });
+  // console.log("🔍 Buscando clases para fecha:", {
+  //   fechaInput: fecha.toISOString(),
+  //   startOfDay: startOfDay.toISOString(),
+  //   endOfDay: endOfDay.toISOString(),
+  //   startTimestamp: Timestamp.fromDate(startOfDay).toDate().toISOString(),
+  //   endTimestamp: Timestamp.fromDate(endOfDay).toDate().toISOString(),
+  // });
 
   const clasesRef = collection(db, "calendario");
   const q = query(
@@ -205,7 +205,7 @@ export async function getClasesPorFecha(fecha: Date): Promise<Clase[]> {
 
   const snapshot = await getDocs(q);
 
-  console.log("📋 Clases encontradas:", snapshot.size);
+  // console.log("📋 Clases encontradas:", snapshot.size);
 
   // Obtener conteo de reservaciones para cada clase (excluyendo WODs)
   const clases: Clase[] = await Promise.all(

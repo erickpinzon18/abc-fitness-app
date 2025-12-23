@@ -4,8 +4,10 @@ import { useAuth } from "@/context/AuthContext";
 import {
   cancelarReservacion,
   Clase,
+  crearReservacion,
   getClasesPorFecha,
   getProximaClaseUsuario,
+  getReservacionesUsuario,
   getWODHoy,
   hacerCheckIn,
   UserReservation,
@@ -156,10 +158,13 @@ export default function DashboardScreen({ navigation }: Props) {
   const [modalType, setModalType] = useState<ModalType>("checkin");
   const [modalMessage, setModalMessage] = useState("");
   const [modalTitle, setModalTitle] = useState("");
+  const [selectedTomorrowClass, setSelectedTomorrowClass] =
+    useState<Clase | null>(null);
+  const [reservedTomorrowIds, setReservedTomorrowIds] = useState<string[]>([]);
 
   const firstName = userData?.displayName?.split(" ")[0] || "Atleta";
 
-  console.log("🏠 HomeScreen rendered - test version with more UI");
+  // console.log("🏠 HomeScreen rendered - test version with more UI");
 
   const cargarProximaClase = useCallback(async () => {
     if (!user) return;
@@ -172,16 +177,25 @@ export default function DashboardScreen({ navigation }: Props) {
   }, [user]);
 
   const cargarClasesMañana = useCallback(async () => {
+    if (!user) return;
     try {
       const mañana = new Date();
       mañana.setDate(mañana.getDate() + 1);
       mañana.setHours(0, 0, 0, 0);
       const clases = await getClasesPorFecha(mañana);
       setClasesMañana(clases);
+
+      // Obtener reservaciones del usuario para mañana
+      const reservaciones = await getReservacionesUsuario(user.uid);
+      const mañanaString = mañana.toISOString().split("T")[0];
+      const reservasMañana = reservaciones
+        .filter((r) => r.fechaString === mañanaString)
+        .map((r) => r.claseId);
+      setReservedTomorrowIds(reservasMañana);
     } catch (error) {
       console.error("Error cargando clases de mañana:", error);
     }
-  }, []);
+  }, [user]);
 
   const cargarWOD = useCallback(async () => {
     try {
@@ -291,9 +305,39 @@ export default function DashboardScreen({ navigation }: Props) {
   };
 
   const handleModalConfirm = async () => {
-    if (!proximaClase || !user?.uid) return;
-
     try {
+      // Handle reserve for tomorrow classes
+      if (modalType === "reserve" && selectedTomorrowClass && user?.uid) {
+        const result = await crearReservacion(
+          selectedTomorrowClass.id,
+          user.uid,
+          userData?.displayName || "Usuario",
+          user.email || ""
+        );
+        if (result.success) {
+          setModalVisible(false);
+          setModalType("success");
+          setModalTitle("¡Reservado! 🎉");
+          setModalMessage(
+            `Tu clase de ${selectedTomorrowClass.clase} está reservada para mañana a las ${selectedTomorrowClass.horaInicio}`
+          );
+          setModalVisible(true);
+          setSelectedTomorrowClass(null);
+          await cargarClasesMañana();
+          await cargarProximaClase();
+        } else {
+          setModalVisible(false);
+          setModalType("error");
+          setModalTitle("Error");
+          setModalMessage(result.error || "No se pudo reservar");
+          setModalVisible(true);
+        }
+        return;
+      }
+
+      // Handle checkin and cancel for proxima clase
+      if (!proximaClase || !user?.uid) return;
+
       if (modalType === "checkin") {
         const result = await hacerCheckIn(proximaClase.claseId, user.uid);
         if (result.success) {
@@ -515,33 +559,63 @@ export default function DashboardScreen({ navigation }: Props) {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.horizontalScroll}
             >
-              {clasesMañana.map((clase) => (
-                <TouchableOpacity
-                  key={clase.id}
-                  style={styles.quickBookCard}
-                  onPress={() => {
-                    setModalType("reserve");
-                    setModalTitle("Reservar Clase");
-                    setModalMessage(
-                      `¿Reservar ${clase.clase} a las ${clase.horaInicio}?`
-                    );
-                    setModalVisible(true);
-                  }}
-                >
-                  <Text style={styles.quickBookTime}>{clase.horaInicio}</Text>
-                  <Text style={styles.quickBookName}>{clase.clase}</Text>
-                  <Text style={styles.quickBookInstructor}>
-                    {clase.instructor}
-                  </Text>
-                  <View style={styles.quickBookSpots}>
-                    <Text style={styles.quickBookSpotsText}>
-                      {(clase.capacidadMaxima || 20) -
-                        (clase.reservacionesCount || 0)}{" "}
-                      lugares
+              {clasesMañana.map((clase) => {
+                const isReserved = reservedTomorrowIds.includes(clase.id);
+                return (
+                  <TouchableOpacity
+                    key={clase.id}
+                    style={[
+                      styles.quickBookCard,
+                      isReserved && styles.quickBookCardReserved,
+                    ]}
+                    disabled={isReserved}
+                    onPress={() => {
+                      setSelectedTomorrowClass(clase);
+                      setModalType("reserve");
+                      setModalTitle("Reservar Clase");
+                      setModalMessage(
+                        `¿Reservar ${clase.clase} a las ${clase.horaInicio}?`
+                      );
+                      setModalVisible(true);
+                    }}
+                  >
+                    <View style={styles.quickBookTimeRow}>
+                      <Text
+                        style={[
+                          styles.quickBookTime,
+                          isReserved && { color: "#16a34a" },
+                        ]}
+                      >
+                        {clase.horaInicio}
+                      </Text>
+                      {isReserved && (
+                        <View style={styles.reservedBadge}>
+                          <Text style={styles.reservedBadgeText}>✓</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.quickBookName}>{clase.clase}</Text>
+                    <Text style={styles.quickBookInstructor}>
+                      {clase.instructor}
                     </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                    <View style={styles.quickBookSpots}>
+                      <Text
+                        style={[
+                          styles.quickBookSpotsText,
+                          isReserved && { color: "#16a34a" },
+                        ]}
+                      >
+                        {isReserved
+                          ? "Reservada ✓"
+                          : `${
+                              (clase.capacidadMaxima || 20) -
+                              (clase.reservacionesCount || 0)
+                            } lugares`}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         )}
@@ -948,5 +1022,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     color: "#16a34a",
+  },
+  quickBookCardReserved: {
+    borderColor: "#16a34a",
+    borderWidth: 2,
+    backgroundColor: "#f0fdf4",
+  },
+  quickBookTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  reservedBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#16a34a",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reservedBadgeText: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: "#ffffff",
   },
 });
