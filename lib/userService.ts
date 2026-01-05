@@ -1,16 +1,16 @@
-import { db } from '@/lib/firebase';
+import { db } from "@/lib/firebase";
 import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    serverTimestamp,
-    setDoc,
-    Timestamp,
-    updateDoc,
-    where,
-} from 'firebase/firestore';
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  updateDoc,
+  where,
+} from "firebase/firestore";
 
 // Tipo para los datos del usuario en Firestore
 export interface UserDocument {
@@ -19,18 +19,19 @@ export interface UserDocument {
   displayName: string;
   phone?: string;
   photoURL?: string;
-  membershipType: 'basic' | 'pro' | 'premium' | 'unlimited';
+  membershipType: "basic" | "pro" | "premium" | "unlimited";
   membershipExpiry?: Timestamp;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   streak: number;
   totalClasses: number;
-  level: 'Scaled' | 'Intermedio' | 'RX';
+  level: "Scaled" | "Intermedio" | "RX";
   isActive: boolean;
+  type?: "user" | "admin" | "coach"; // Tipo de usuario para control de acceso
 }
 
 // Colección de usuarios
-const usersCollection = collection(db, 'users');
+const usersCollection = collection(db, "users");
 
 /**
  * Crea un nuevo documento de usuario en Firestore
@@ -41,18 +42,18 @@ export async function createUserDocument(
   displayName: string,
   phone?: string
 ): Promise<UserDocument> {
-  const userRef = doc(db, 'users', uid);
-  
+  const userRef = doc(db, "users", uid);
+
   const userData = {
     uid,
     email,
     displayName,
-    phone: phone || '',
-    photoURL: '',
-    membershipType: 'basic' as const,
+    phone: phone || "",
+    photoURL: "",
+    membershipType: "basic" as const,
     streak: 0,
     totalClasses: 0,
-    level: 'Scaled' as const,
+    level: "Scaled" as const,
     isActive: true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -72,13 +73,13 @@ export async function createUserDocument(
  * Obtiene un usuario por su UID
  */
 export async function getUserById(uid: string): Promise<UserDocument | null> {
-  const userRef = doc(db, 'users', uid);
+  const userRef = doc(db, "users", uid);
   const userSnap = await getDoc(userRef);
-  
+
   if (userSnap.exists()) {
     return userSnap.data() as UserDocument;
   }
-  
+
   return null;
 }
 
@@ -87,10 +88,10 @@ export async function getUserById(uid: string): Promise<UserDocument | null> {
  */
 export async function updateUser(
   uid: string,
-  data: Partial<Omit<UserDocument, 'uid' | 'createdAt' | 'updatedAt'>>
+  data: Partial<Omit<UserDocument, "uid" | "createdAt" | "updatedAt">>
 ): Promise<void> {
-  const userRef = doc(db, 'users', uid);
-  
+  const userRef = doc(db, "users", uid);
+
   await updateDoc(userRef, {
     ...data,
     updatedAt: serverTimestamp(),
@@ -110,12 +111,12 @@ export async function getUsersByDateRange(
 
   const q = query(
     usersCollection,
-    where('createdAt', '>=', startTimestamp),
-    where('createdAt', '<=', endTimestamp)
+    where("createdAt", ">=", startTimestamp),
+    where("createdAt", "<=", endTimestamp)
   );
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => doc.data() as UserDocument);
+  return snapshot.docs.map((doc) => doc.data() as UserDocument);
 }
 
 /**
@@ -124,7 +125,14 @@ export async function getUsersByDateRange(
 export async function getNewUsersThisMonth(): Promise<UserDocument[]> {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const endOfMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+    23,
+    59,
+    59
+  );
 
   return getUsersByDateRange(startOfMonth, endOfMonth);
 }
@@ -132,22 +140,34 @@ export async function getNewUsersThisMonth(): Promise<UserDocument[]> {
 /**
  * Obtiene el conteo de usuarios nuevos por mes del año actual
  */
-export async function getMonthlyUserStats(): Promise<{ month: string; count: number }[]> {
+export async function getMonthlyUserStats(): Promise<
+  { month: string; count: number }[]
+> {
   const now = new Date();
   const year = now.getFullYear();
   const stats: { month: string; count: number }[] = [];
 
   const monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
   ];
 
   for (let month = 0; month <= now.getMonth(); month++) {
     const startOfMonth = new Date(year, month, 1);
     const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59);
-    
+
     const users = await getUsersByDateRange(startOfMonth, endOfMonth);
-    
+
     stats.push({
       month: monthNames[month],
       count: users.length,
@@ -161,7 +181,7 @@ export async function getMonthlyUserStats(): Promise<{ month: string; count: num
  * Obtiene el total de usuarios activos
  */
 export async function getTotalActiveUsers(): Promise<number> {
-  const q = query(usersCollection, where('isActive', '==', true));
+  const q = query(usersCollection, where("isActive", "==", true));
   const snapshot = await getDocs(q);
   return snapshot.size;
 }
@@ -170,11 +190,14 @@ export async function getTotalActiveUsers(): Promise<number> {
  * Obtiene usuarios por tipo de membresía
  */
 export async function getUsersByMembershipType(
-  membershipType: UserDocument['membershipType']
+  membershipType: UserDocument["membershipType"]
 ): Promise<UserDocument[]> {
-  const q = query(usersCollection, where('membershipType', '==', membershipType));
+  const q = query(
+    usersCollection,
+    where("membershipType", "==", membershipType)
+  );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => doc.data() as UserDocument);
+  return snapshot.docs.map((doc) => doc.data() as UserDocument);
 }
 
 /**
@@ -191,7 +214,12 @@ export async function getUserStats(): Promise<{
   ]);
 
   // Obtener conteo por tipo de membresía
-  const membershipTypes: UserDocument['membershipType'][] = ['basic', 'pro', 'premium', 'unlimited'];
+  const membershipTypes: UserDocument["membershipType"][] = [
+    "basic",
+    "pro",
+    "premium",
+    "unlimited",
+  ];
   const byMembership = await Promise.all(
     membershipTypes.map(async (type) => ({
       type,

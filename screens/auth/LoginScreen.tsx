@@ -38,20 +38,54 @@ export default function LoginScreen() {
     error,
     clearError,
     user,
+    userData,
     isEmailVerified,
   } = useAuth();
 
-  // (Auto-navegación removida - el usuario siempre verá el login)
-  // Redirigir según el estado de autenticación y verificación
+  // Redirigir según el estado de autenticación y tipo de usuario
   useEffect(() => {
-    if (user) {
-      if (isEmailVerified) {
-        navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+    if (user && isEmailVerified && userData) {
+      // Verificar si es admin o coach
+      if (userData.type === "admin" || userData.type === "coach") {
+        // Ir al panel de admin
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: "Admin",
+              params: {
+                admin: {
+                  id: user.uid,
+                  email: userData.email,
+                  fullName: userData.displayName,
+                  role: userData.type,
+                  permissions: {
+                    clases: true,
+                    horarios: true,
+                    eventos: true,
+                    blog: true,
+                    noticias: true,
+                    coaches: userData.type === "admin",
+                    configuracion: userData.type === "admin",
+                    beneficios: true,
+                    testimonios: true,
+                    contacto: true,
+                    redes: true,
+                  },
+                  createdAt: userData.createdAt,
+                },
+              },
+            },
+          ],
+        });
       } else {
-        navigation.navigate("VerifyEmail");
+        // Usuario normal
+        navigation.reset({ index: 0, routes: [{ name: "Main" }] });
       }
+    } else if (user && !isEmailVerified) {
+      navigation.navigate("VerifyEmail");
     }
-  }, [user, isEmailVerified, navigation]);
+  }, [user, userData, isEmailVerified, navigation]);
 
   // Manejar error del contexto de auth
   useEffect(() => {
@@ -101,8 +135,7 @@ export default function LoginScreen() {
 
     try {
       await signIn(email.trim(), password);
-      // Navegar a Main después de login exitoso
-      navigation.reset({ index: 0, routes: [{ name: "Main" }] });
+      // La navegación se maneja en el useEffect cuando userData esté disponible
     } catch (err) {
       // El error se maneja en el useEffect de error
     }

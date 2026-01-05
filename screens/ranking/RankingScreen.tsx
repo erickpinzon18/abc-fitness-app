@@ -312,10 +312,11 @@ export default function RankingScreen() {
 
           {ranking.length === 0 && (
             <View style={styles.emptyContainer}>
-              <Trophy size={48} color="#9ca3af" />
-              <Text style={styles.emptyTitle}>Sin datos aún</Text>
+              <Trophy size={48} color="#dc2626" />
+              <Text style={styles.emptyTitle}>¡Sé el primero! 🏆</Text>
               <Text style={styles.emptySubtitle}>
-                Asiste a clases y registra WODs para aparecer en el ranking
+                El podio está vacío esperándote. Asiste a clases y registra tus
+                WODs para conquistar el primer lugar.
               </Text>
             </View>
           )}

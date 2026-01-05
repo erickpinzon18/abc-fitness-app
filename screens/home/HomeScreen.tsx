@@ -1,4 +1,6 @@
 import { ConfirmModal, ModalType } from "@/components/ConfirmModal";
+import { NewsCarousel } from "@/components/NewsCarousel";
+import { NewsModal } from "@/components/NewsModal";
 import { StreakCelebration } from "@/components/StreakCelebration";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -13,6 +15,7 @@ import {
   UserReservation,
   WOD,
 } from "@/lib/classService";
+import { getActiveNews, News } from "@/lib/newsService";
 import {
   getDiasEntrenamientoMes,
   verificarRachaAlIniciar,
@@ -162,6 +165,10 @@ export default function DashboardScreen({ navigation }: Props) {
     useState<Clase | null>(null);
   const [reservedTomorrowIds, setReservedTomorrowIds] = useState<string[]>([]);
 
+  // News state
+  const [noticias, setNoticias] = useState<News[]>([]);
+  const [selectedNews, setSelectedNews] = useState<News | null>(null);
+  const [newsModalVisible, setNewsModalVisible] = useState(false);
   const firstName = userData?.displayName?.split(" ")[0] || "Atleta";
 
   // console.log("🏠 HomeScreen rendered - test version with more UI");
@@ -230,6 +237,15 @@ export default function DashboardScreen({ navigation }: Props) {
     }
   }, [user]);
 
+  const cargarNoticias = useCallback(async () => {
+    try {
+      const news = await getActiveNews();
+      setNoticias(news);
+    } catch (error) {
+      console.error("Error cargando noticias:", error);
+    }
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -238,11 +254,18 @@ export default function DashboardScreen({ navigation }: Props) {
         cargarClasesMañana(),
         cargarWOD(),
         verificarRacha(),
+        cargarNoticias(),
       ]);
       setLoading(false);
     };
     loadData();
-  }, [cargarProximaClase, cargarClasesMañana, cargarWOD, verificarRacha]);
+  }, [
+    cargarProximaClase,
+    cargarClasesMañana,
+    cargarWOD,
+    verificarRacha,
+    cargarNoticias,
+  ]);
 
   // Actualizar estado del tiempo cada 30 segundos
   useEffect(() => {
@@ -277,9 +300,16 @@ export default function DashboardScreen({ navigation }: Props) {
       cargarClasesMañana(),
       cargarWOD(),
       verificarRacha(),
+      cargarNoticias(),
     ]);
     setRefreshing(false);
-  }, [cargarProximaClase, cargarClasesMañana, cargarWOD, verificarRacha]);
+  }, [
+    cargarProximaClase,
+    cargarClasesMañana,
+    cargarWOD,
+    verificarRacha,
+    cargarNoticias,
+  ]);
 
   const goToBooking = () => {
     navigation.navigate("Booking");
@@ -424,7 +454,11 @@ export default function DashboardScreen({ navigation }: Props) {
           <TouchableOpacity onPress={goToProfile}>
             <View style={styles.avatarContainer}>
               <Image
-                source={{ uri: "https://i.pravatar.cc/150?img=11" }}
+                source={
+                  userData?.photoURL
+                    ? { uri: userData.photoURL }
+                    : require("@/assets/images/avatar.png")
+                }
                 style={styles.avatar}
               />
               <View style={styles.onlineIndicator} />
@@ -445,6 +479,17 @@ export default function DashboardScreen({ navigation }: Props) {
             <Text style={styles.streakLabel}>🔥 Racha</Text>
           </View>
         </View>
+
+        {/* News Carousel */}
+        {noticias.length > 0 && (
+          <NewsCarousel
+            news={noticias}
+            onNewsPress={(news) => {
+              setSelectedNews(news);
+              setNewsModalVisible(true);
+            }}
+          />
+        )}
 
         {/* Next Class */}
         <View style={styles.section}>
@@ -676,6 +721,16 @@ export default function DashboardScreen({ navigation }: Props) {
         visible={showStreakCelebration}
         streakCount={streak}
         onComplete={() => setShowStreakCelebration(false)}
+      />
+
+      {/* News Detail Modal */}
+      <NewsModal
+        visible={newsModalVisible}
+        news={selectedNews}
+        onClose={() => {
+          setNewsModalVisible(false);
+          setSelectedNews(null);
+        }}
       />
     </SafeAreaView>
   );

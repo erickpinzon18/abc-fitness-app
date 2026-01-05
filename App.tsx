@@ -1,5 +1,10 @@
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import ActionsModal from "@/screens/ActionsModal";
+import AdminClases from "@/screens/admin/AdminClases";
+import AdminConfig from "@/screens/admin/AdminConfig";
+import AdminDashboard from "@/screens/admin/AdminDashboard";
+import AdminNoticias from "@/screens/admin/AdminNoticias";
+import AdminWODs from "@/screens/admin/AdminWODs";
 import LoginScreen from "@/screens/auth/LoginScreen";
 import RegisterScreen from "@/screens/auth/RegisterScreen";
 import VerifyEmailScreen from "@/screens/auth/VerifyEmailScreen";
@@ -20,7 +25,15 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { Calendar, Home, Trophy, User } from "lucide-react-native";
+import {
+  Calendar,
+  Dumbbell,
+  Home,
+  Newspaper,
+  Settings,
+  Trophy,
+  User,
+} from "lucide-react-native";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
@@ -47,9 +60,18 @@ type MainTabsParamList = {
   Profile: undefined;
 };
 
+type AdminTabsParamList = {
+  Dashboard: undefined;
+  Clases: undefined;
+  WODs: undefined;
+  Noticias: undefined;
+  Config: undefined;
+};
+
 type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
+  Admin: { admin: any };
   Timer: undefined;
   ActiveTimer: { type: string };
   WOD: undefined;
@@ -62,6 +84,7 @@ type RootStackParamList = {
 // Create navigators
 const AuthStackNav = createNativeStackNavigator<AuthStackParamList>();
 const Tab = createBottomTabNavigator<MainTabsParamList>();
+const AdminTab = createBottomTabNavigator<AdminTabsParamList>();
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 // Auth Stack Component
@@ -139,6 +162,96 @@ function MainTabs() {
   );
 }
 
+// Admin Tabs Component
+function AdminTabs({ route, navigation }: any) {
+  const { admin } = route.params;
+  const { signOut } = useAuth();
+  const insets = useSafeAreaInsets();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigation.reset({ index: 0, routes: [{ name: "Auth" }] });
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+    }
+  };
+
+  return (
+    <AdminTab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: "#dc2626",
+        tabBarInactiveTintColor: "#9ca3af",
+        tabBarStyle: {
+          backgroundColor: "#ffffff",
+          borderTopWidth: 1,
+          borderTopColor: "#f3f4f6",
+          paddingTop: 8,
+          paddingBottom: Math.max(insets.bottom, 8),
+          height: 56 + Math.max(insets.bottom, 8),
+        },
+        tabBarLabelStyle: {
+          fontFamily: "Montserrat-SemiBold",
+          fontSize: 10,
+        },
+      }}
+    >
+      <AdminTab.Screen
+        name="Dashboard"
+        options={{
+          tabBarLabel: "Inicio",
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+        }}
+      >
+        {() => <AdminDashboard admin={admin} onLogout={handleLogout} />}
+      </AdminTab.Screen>
+      <AdminTab.Screen
+        name="Clases"
+        component={AdminClases}
+        options={{
+          tabBarLabel: "Clases",
+          tabBarIcon: ({ color, size }) => (
+            <Calendar size={size} color={color} />
+          ),
+        }}
+      />
+      <AdminTab.Screen
+        name="WODs"
+        component={AdminWODs}
+        options={{
+          tabBarLabel: "WODs",
+          tabBarIcon: ({ color, size }) => (
+            <Dumbbell size={size} color={color} />
+          ),
+        }}
+      />
+      <AdminTab.Screen
+        name="Noticias"
+        component={AdminNoticias}
+        options={{
+          tabBarLabel: "Noticias",
+          tabBarIcon: ({ color, size }) => (
+            <Newspaper size={size} color={color} />
+          ),
+        }}
+      />
+      <AdminTab.Screen
+        name="Config"
+        options={{
+          tabBarLabel: "Config",
+          tabBarIcon: ({ color, size }) => (
+            <Settings size={size} color={color} />
+          ),
+        }}
+      >
+        {() => <AdminConfig admin={admin} onLogout={handleLogout} />}
+      </AdminTab.Screen>
+    </AdminTab.Navigator>
+  );
+}
+
 // Root Navigator
 function RootNavigator() {
   return (
@@ -148,6 +261,7 @@ function RootNavigator() {
     >
       <RootStack.Screen name="Auth" component={AuthStack} />
       <RootStack.Screen name="Main" component={MainTabs} />
+      <RootStack.Screen name="Admin" component={AdminTabs} />
       <RootStack.Screen
         name="Timer"
         component={TimerScreen}
